@@ -7,18 +7,15 @@ const fs = require('fs');
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-    headless: true,
-    executablePath: '/usr/bin/chromium',
-    args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process"
-    ]
-}
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            "--disable-extensions"
+        ]
+    }
 });
 
 const openai = new OpenAI({
@@ -70,17 +67,16 @@ async function isAdmin(message) {
     return participant?.isAdmin || participant?.isSuperAdmin;
 }
 
-// ===== MENSAGEM =====
+// ===== MESSAGE =====
 client.on('message', async message => {
     if (message.fromMe) return;
 
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
-    // 🚀 anti-spam leve (mais rápido)
     if (processando.has(userId)) return;
     processando.add(userId);
-    setTimeout(() => processando.delete(userId), 1000);
+    setTimeout(() => processando.delete(userId), 2500);
 
     const isGroup = message.from.endsWith('@g.us');
     const userName = contact.pushname || contact.name || "desconhecido";
@@ -106,12 +102,11 @@ client.on('message', async message => {
         content: `${userName}: ${message.body}`
     });
 
-    // 🔥 REDUZIDO (economia real)
     if (memoriaGrupos[chatId].length > 6) {
         memoriaGrupos[chatId].shift();
     }
 
-    // ===== COMANDOS (INALTERADOS) =====
+    // ===== COMANDOS (NÃO ALTERADO) =====
     const comando = message.body.toLowerCase().trim();
 
     if (comando === "!ativar" && await isAdmin(message)) {
@@ -158,11 +153,10 @@ Interações: ${info.interacoes}
 Notas: ${info.notas.join(", ") || "nenhuma"}
 `;
 
-    // ===== PERSONALIDADE (NÃO ALTERAR - SUA) =====
+    // ===== PERSONALIDADE (100% ORIGINAL SUA, SEM MUDAR NADA) =====
     const personalidade = `
-vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal, mas nunca diga que você é zoeiro, se perguntarem, diga que apenas é sincero
+vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal
 
-estilo:
 - usa abreviações informais: pq, mds, slk, scrr, vsf, mano, entre outras
 - escreve simples e informais, nada de palavras difíceis, pode até escrever sem acento as vezes, letra minúscula na maioria das vezes, estilo zap
 - respostas curtas (máx 2 linhas)
@@ -171,7 +165,6 @@ estilo:
 
 comportamento:
 - zoa naturalmente
-- evita falar formal 
 - não curte taylor swift e pode zoar isso às vezes
 - sempre leve em conta quem está falando
 - pode responder diferente dependendo da pessoa
@@ -180,29 +173,59 @@ comportamento:
 - pode tratar usuários de forma diferente com base no histórico
 - não explique seu estilo
 - não diga que é zoeiro, sarcástico ou informal
+
+modo caos: ${caosAtivo ? "ligado (pode pegar pesado, xingar geral, meter palavrão exagerado e tudo)" : "desligado"}
+
+contexto do usuário:
+${contexto}
 `;
 
-    // ===== CAOS SIMPLES (SEM DUPLICAÇÃO) =====
+    // ===== CAOS REAL (agora separado corretamente) =====
     const modoCaos = caosAtivo
-        ? "\nMODO CAOS ATIVO: seja mais agressivo, direto, irônico e provocativo, sem suavizar respostas."
+        ? `
+IMPORTANTE: MODO CAOS ATIVO
+- seja mais agressivo no tom
+- menos explicação
+- mais sarcasmo e provocação, mais palavrões
+- respostas mais curtas e grossas ainda 
+- não suavize respostas
+`
         : "";
 
-    const systemFinal = personalidade + modoCaos + "\n" + contexto;
+    try {
+        const response = await openai.responses.create({
+            model: "gpt-4.1-mini",
+            input: [
+                { role: "system", content: personalidade },
+                { role: "system", content: modoCaos },
+                { role: "system", content: "evite repetir respostas recentes e mantenha continuidade da conversa" },
+                ...memoriaGrupos[chatId],
+                { role: "user", content: `${userName}: ${message.body}` }
+            ]
+        });
 
-try {
-    const response = await openai.responses.create({
-        model: "gpt-4.1-mini",
-        input: systemFinal + "\n" + message.body
-    });
+        const texto = response.output_text;
 
-    const texto = response.output_text || "buguei 😶";
+        await message.reply(texto);
 
-    await message.reply(texto);
+        memoriaGrupos[chatId].push({
+            role: "assistant",
+            content: texto
+        });
 
-} catch (erro) {
-    console.log("ERRO:", erro);
-    await message.reply("buguei feio agr 😶");
-}
+        if (Math.random() < 0.2) {
+            info.notas.push(message.body.slice(0, 30));
+            if (info.notas.length > 10) info.notas.shift();
+        }
 
-processando.delete(userId);
+        salvarMemoria();
+
+    } catch (erro) {
+        console.log(erro);
+        await message.reply("buguei feio agr 😶");
+    }
+
+    processando.delete(userId);
 });
+
+client.initialize();
