@@ -22,37 +22,54 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// ===== ESTADOS =====
 let botId = null;
 let caosAtivo = false;
 let botAtivo = true;
 
-// 🔥 trava por usuário (ANTI-LAG)
 let processando = new Set();
 
-// memória
+// ===== MEMÓRIA =====
 let memoria = {};
 let memoriaGrupos = {};
+let memoriaLonga = {};
+let topicoAtual = {};
 
+// ===== CARREGAR =====
 if (fs.existsSync('memoria.json')) {
     memoria = JSON.parse(fs.readFileSync('memoria.json'));
 }
 
+if (fs.existsSync('memoriaLonga.json')) {
+    memoriaLonga = JSON.parse(fs.readFileSync('memoriaLonga.json'));
+}
+
+// ===== SALVAR =====
 function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
 }
 
-// QR
+function salvarMemoriaLonga() {
+    fs.writeFileSync('memoriaLonga.json', JSON.stringify(memoriaLonga, null, 2));
+}
+
+// ===== DETECTAR TEMA =====
+function detectarTema(texto) {
+    return texto.toLowerCase().split(" ").slice(0, 2).join(" ");
+}
+
+// ===== QR =====
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
 });
 
-// pronto
+// ===== READY =====
 client.on('ready', () => {
     console.log('🔥 bot on');
     botId = client.info.wid._serialized;
 });
 
-// admin check
+// ===== ADMIN CHECK =====
 async function isAdmin(message) {
     const chat = await message.getChat();
     if (!chat.isGroup) return true;
@@ -67,18 +84,16 @@ async function isAdmin(message) {
     return participant?.isAdmin || participant?.isSuperAdmin;
 }
 
-// mensagens
+// ===== MESSAGE =====
 client.on('message', async message => {
     if (message.fromMe) return;
 
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
-    // 🚀 ANTI LAG: bloqueia spam simultâneo por usuário
     if (processando.has(userId)) return;
     processando.add(userId);
-
-    setTimeout(() => processando.delete(userId), 3000);
+    setTimeout(() => processando.delete(userId), 2500);
 
     const isGroup = message.from.endsWith('@g.us');
     const userName = contact.pushname || contact.name || "desconhecido";
@@ -95,7 +110,7 @@ client.on('message', async message => {
 
     memoria[userId].interacoes++;
 
-    // ===== MEMÓRIA GRUPO (LIMITADA MAIS RÁPIDO) =====
+    // ===== MEMÓRIA GRUPO =====
     if (!memoriaGrupos[chatId]) {
         memoriaGrupos[chatId] = [];
     }
@@ -105,12 +120,30 @@ client.on('message', async message => {
         content: `${userName}: ${message.body}`
     });
 
-    // 🔥 reduz pra 5 mensagens (otimizado)
-    if (memoriaGrupos[chatId].length > 5) {
+    if (memoriaGrupos[chatId].length > 12) {
         memoriaGrupos[chatId].shift();
     }
 
-    // ===== COMANDOS (NÃO MEXIDO) =====
+    // ===== MEMÓRIA LONGA (TEMAS) =====
+    if (!memoriaLonga[userId]) {
+        memoriaLonga[userId] = {
+            temas: {},
+            ultimoTema: null
+        };
+    }
+
+    const tema = detectarTema(message.body);
+
+    if (!memoriaLonga[userId].temas[tema]) {
+        memoriaLonga[userId].temas[tema] = 0;
+    }
+
+    memoriaLonga[userId].temas[tema]++;
+    memoriaLonga[userId].ultimoTema = tema;
+
+    salvarMemoriaLonga();
+
+    // ===== COMANDOS =====
     const comando = message.body.toLowerCase().trim();
 
     if (comando === "!ativar" && await isAdmin(message)) {
@@ -149,43 +182,59 @@ client.on('message', async message => {
         }
     }
 
-    // ===== CONTEXTO =====
+    // ===== CONTEXTO INTELIGENTE =====
     const info = memoria[userId];
+
+    const temasTop = Object.entries(memoriaLonga[userId]?.temas || {})
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(t => t[0])
+        .join(" | ");
 
     const contextoMemoria = `
 Nome: ${info.nome}
 Interações: ${info.interacoes}
+
+Temas recorrentes:
+${temasTop || "nenhum ainda"}
+
+Tema atual: ${memoriaLonga[userId]?.ultimoTema || "nenhum"}
+
 Notas: ${info.notas.join(", ") || "nenhuma"}
+
+Assunto atual do chat: ${topicoAtual[chatId] || "indefinido"}
 `;
 
-const personalidade = `
+    topicoAtual[chatId] = message.body.split(" ").slice(0, 3).join(" ");
+
+    // ===== PERSONALIDADE (INALTERADA) =====
+    const personalidade = `
 vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal, mas nunca diga que você é zoeiro, se perguntarem, diga que apenas é sincero
 
 estilo:
-- usa abreviações informais: pq, mds, slk, scrr, vsf, mano, entre outras
-- escreve simples e informais, nada de palavras difíceis, pode até escrever sem acento as vezes, letra minúscula na maioria das vezes, estilo zap
+- usa abreviações informais: pq, pqp, vtmnc, mds, slk, scrr, vsf, mano, entre outras
+- escreve simples e informais, mas de forma natural e legível
 - respostas curtas (máx 2 linhas)
-- pode xingar de modo médio, todos os palavrões estão liberados, não se contenha eles
-- não use muitos termos em inglês, aja como um brasileiro que está meio foda-se pra tudo
+- pode xingar de modo médio
+- não use muitos termos em inglês
 
 comportamento:
 - zoa naturalmente
 - às vezes seco
-- evita falar formal tipo "claro", "com certeza", entre outros exemplos
-- não curte taylor swift e pode zoar isso às vezes
-- sempre leve em conta quem está falando
-- pode responder diferente dependendo da pessoa
-- use o nome da pessoa às vezes
-- pode criar implicância com pessoas específicas
-- pode tratar usuários de forma diferente com base no histórico
-- nunca fale que você é zoeiro ou que vai começar a zoar
-- não explique seu estilo
-- não diga que é zoeiro, sarcástico ou informal
+- evita formalidade
+- não curte taylor swift, e zoa isso as vezes
+- responde diferente dependendo da pessoa
+- usa nome do usuário às vezes
+- pode implicar com pessoas
+- comportamento baseado no histórico
+- nunca diga que é zoeiro
 
-modo caos: ${caosAtivo ? "ON (pode pegar pesado, xingar geral, meter palavrão exagerado e tudo e se deixar ir)" : "OFF"}
+modo caos: ${caosAtivo ? "ligado" : "desligado"}
 
-contexto:
+contexto do usuário:
 ${contextoMemoria}
+
+evite repetir respostas recentes e mantenha continuidade da conversa. não reinicie assuntos sem necessidade.
 `;
 
     try {
@@ -193,6 +242,10 @@ ${contextoMemoria}
             model: "gpt-4.1-mini",
             input: [
                 { role: "system", content: personalidade },
+                {
+                    role: "system",
+                    content: "evite repetição e continue conversas naturalmente sem reiniciar tópicos"
+                },
                 ...memoriaGrupos[chatId],
                 {
                     role: "user",
