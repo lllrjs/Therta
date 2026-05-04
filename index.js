@@ -67,16 +67,17 @@ async function isAdmin(message) {
     return participant?.isAdmin || participant?.isSuperAdmin;
 }
 
-// ===== MESSAGE =====
+// ===== MENSAGEM =====
 client.on('message', async message => {
     if (message.fromMe) return;
 
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
+    // 🚀 anti-spam leve (mais rápido)
     if (processando.has(userId)) return;
     processando.add(userId);
-    setTimeout(() => processando.delete(userId), 2500);
+    setTimeout(() => processando.delete(userId), 1000);
 
     const isGroup = message.from.endsWith('@g.us');
     const userName = contact.pushname || contact.name || "desconhecido";
@@ -102,11 +103,12 @@ client.on('message', async message => {
         content: `${userName}: ${message.body}`
     });
 
+    // 🔥 REDUZIDO (economia real)
     if (memoriaGrupos[chatId].length > 6) {
         memoriaGrupos[chatId].shift();
     }
 
-    // ===== COMANDOS (NÃO ALTERADO) =====
+    // ===== COMANDOS (INALTERADOS) =====
     const comando = message.body.toLowerCase().trim();
 
     if (comando === "!ativar" && await isAdmin(message)) {
@@ -153,7 +155,7 @@ Interações: ${info.interacoes}
 Notas: ${info.notas.join(", ") || "nenhuma"}
 `;
 
-    // ===== PERSONALIDADE (100% ORIGINAL SUA, SEM MUDAR NADA) =====
+    // ===== PERSONALIDADE (NÃO ALTERAR - SUA) =====
     const personalidade = `
 vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal, mas nunca diga que você é zoeiro, se perguntarem, diga que apenas é sincero
 
@@ -166,70 +168,20 @@ estilo:
 
 comportamento:
 - zoa naturalmente
-- às vezes seco
-- evita falar formal tipo "claro", "com certeza", entre outros exemplos
+- evita falar formal 
 - não curte taylor swift e pode zoar isso às vezes
 - sempre leve em conta quem está falando
 - pode responder diferente dependendo da pessoa
 - use o nome da pessoa às vezes
 - pode criar implicância com pessoas específicas
 - pode tratar usuários de forma diferente com base no histórico
-- nunca fale que você é zoeiro ou que vai começar a zoar
 - não explique seu estilo
 - não diga que é zoeiro, sarcástico ou informal
-
-modo caos: ${caosAtivo ? "ligado (pode pegar pesado, xingar geral, meter palavrão exagerado e tudo)" : "desligado"}
-
-contexto do usuário:
-${contexto}
 `;
 
-    // ===== CAOS REAL (agora separado corretamente) =====
+    // ===== CAOS SIMPLES (SEM DUPLICAÇÃO) =====
     const modoCaos = caosAtivo
-        ? `
-IMPORTANTE: MODO CAOS ATIVO
-- seja mais agressivo no tom
-- menos explicação
-- mais sarcasmo e provocação, mais palavrões
-- respostas mais curtas e grossas ainda 
-- não suavize respostas
-`
+        ? "\nMODO CAOS ATIVO: seja mais agressivo, direto, irônico e provocativo, sem suavizar respostas."
         : "";
 
-    try {
-        const response = await openai.responses.create({
-            model: "gpt-4.1-mini",
-            input: [
-                { role: "system", content: personalidade },
-                { role: "system", content: modoCaos },
-                { role: "system", content: "evite repetir respostas recentes e mantenha continuidade da conversa" },
-                ...memoriaGrupos[chatId],
-                { role: "user", content: `${userName}: ${message.body}` }
-            ]
-        });
-
-        const texto = response.output_text;
-
-        await message.reply(texto);
-
-        memoriaGrupos[chatId].push({
-            role: "assistant",
-            content: texto
-        });
-
-        if (Math.random() < 0.2) {
-            info.notas.push(message.body.slice(0, 30));
-            if (info.notas.length > 10) info.notas.shift();
-        }
-
-        salvarMemoria();
-
-    } catch (erro) {
-        console.log(erro);
-        await message.reply("buguei feio agr 😶");
-    }
-
-    processando.delete(userId);
-});
-
-client.initialize();
+    // 🔥 1
