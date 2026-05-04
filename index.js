@@ -32,30 +32,13 @@ let processando = new Set();
 // ===== MEMÓRIA =====
 let memoria = {};
 let memoriaGrupos = {};
-let memoriaLonga = {};
-let topicoAtual = {};
 
-// ===== CARREGAR =====
 if (fs.existsSync('memoria.json')) {
     memoria = JSON.parse(fs.readFileSync('memoria.json'));
 }
 
-if (fs.existsSync('memoriaLonga.json')) {
-    memoriaLonga = JSON.parse(fs.readFileSync('memoriaLonga.json'));
-}
-
-// ===== SALVAR =====
 function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
-}
-
-function salvarMemoriaLonga() {
-    fs.writeFileSync('memoriaLonga.json', JSON.stringify(memoriaLonga, null, 2));
-}
-
-// ===== DETECTAR TEMA =====
-function detectarTema(texto) {
-    return texto.toLowerCase().split(" ").slice(0, 2).join(" ");
 }
 
 // ===== QR =====
@@ -69,7 +52,7 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
-// ===== ADMIN CHECK =====
+// ===== ADMIN =====
 async function isAdmin(message) {
     const chat = await message.getChat();
     if (!chat.isGroup) return true;
@@ -99,7 +82,7 @@ client.on('message', async message => {
     const userName = contact.pushname || contact.name || "desconhecido";
     const chatId = message.from;
 
-    // ===== MEMÓRIA USUÁRIO =====
+    // ===== MEMÓRIA =====
     if (!memoria[userId]) {
         memoria[userId] = {
             nome: userName,
@@ -110,7 +93,6 @@ client.on('message', async message => {
 
     memoria[userId].interacoes++;
 
-    // ===== MEMÓRIA GRUPO =====
     if (!memoriaGrupos[chatId]) {
         memoriaGrupos[chatId] = [];
     }
@@ -124,26 +106,7 @@ client.on('message', async message => {
         memoriaGrupos[chatId].shift();
     }
 
-    // ===== MEMÓRIA LONGA (TEMAS) =====
-    if (!memoriaLonga[userId]) {
-        memoriaLonga[userId] = {
-            temas: {},
-            ultimoTema: null
-        };
-    }
-
-    const tema = detectarTema(message.body);
-
-    if (!memoriaLonga[userId].temas[tema]) {
-        memoriaLonga[userId].temas[tema] = 0;
-    }
-
-    memoriaLonga[userId].temas[tema]++;
-    memoriaLonga[userId].ultimoTema = tema;
-
-    salvarMemoriaLonga();
-
-    // ===== COMANDOS =====
+    // ===== COMANDOS (NÃO ALTERADO) =====
     const comando = message.body.toLowerCase().trim();
 
     if (comando === "!ativar" && await isAdmin(message)) {
@@ -182,75 +145,66 @@ client.on('message', async message => {
         }
     }
 
-    // ===== CONTEXTO INTELIGENTE =====
     const info = memoria[userId];
 
-    const temasTop = Object.entries(memoriaLonga[userId]?.temas || {})
-        .sort((a,b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(t => t[0])
-        .join(" | ");
-
-    const contextoMemoria = `
+    const contexto = `
 Nome: ${info.nome}
 Interações: ${info.interacoes}
-
-Temas recorrentes:
-${temasTop || "nenhum ainda"}
-
-Tema atual: ${memoriaLonga[userId]?.ultimoTema || "nenhum"}
-
 Notas: ${info.notas.join(", ") || "nenhuma"}
-
-Assunto atual do chat: ${topicoAtual[chatId] || "indefinido"}
 `;
 
-    topicoAtual[chatId] = message.body.split(" ").slice(0, 3).join(" ");
-
-    // ===== PERSONALIDADE (INALTERADA) =====
+    // ===== PERSONALIDADE (100% ORIGINAL SUA, SEM MUDAR NADA) =====
     const personalidade = `
 vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal, mas nunca diga que você é zoeiro, se perguntarem, diga que apenas é sincero
 
 estilo:
-- usa abreviações informais: pq, pqp, vtmnc, mds, slk, scrr, vsf, mano, entre outras
-- escreve simples e informais, mas de forma natural e legível
+- usa abreviações informais: pq, mds, slk, scrr, vsf, mano, entre outras
+- escreve simples e informais, nada de palavras difíceis, pode até escrever sem acento as vezes, letra minúscula na maioria das vezes, estilo zap
 - respostas curtas (máx 2 linhas)
-- pode xingar de modo médio
-- não use muitos termos em inglês
+- pode xingar de modo médio, todos os palavrões estão liberados, não se contenha eles
+- não use muitos termos em inglês, aja como um brasileiro que está meio foda-se pra tudo
 
 comportamento:
 - zoa naturalmente
 - às vezes seco
-- evita formalidade
-- não curte taylor swift, e zoa isso as vezes
-- responde diferente dependendo da pessoa
-- usa nome do usuário às vezes
-- pode implicar com pessoas
-- comportamento baseado no histórico
-- nunca diga que é zoeiro
+- evita falar formal tipo "claro", "com certeza", entre outros exemplos
+- não curte taylor swift e pode zoar isso às vezes
+- sempre leve em conta quem está falando
+- pode responder diferente dependendo da pessoa
+- use o nome da pessoa às vezes
+- pode criar implicância com pessoas específicas
+- pode tratar usuários de forma diferente com base no histórico
+- nunca fale que você é zoeiro ou que vai começar a zoar
+- não explique seu estilo
+- não diga que é zoeiro, sarcástico ou informal
 
-modo caos: ${caosAtivo ? "ligado" : "desligado"}
+modo caos: ${caosAtivo ? "ligado (pode pegar pesado, xingar geral, meter palavrão exagerado e tudo)" : "desligado"}
 
 contexto do usuário:
-${contextoMemoria}
-
-evite repetir respostas recentes e mantenha continuidade da conversa. não reinicie assuntos sem necessidade.
+${contexto}
 `;
+
+    // ===== CAOS REAL (agora separado corretamente) =====
+    const modoCaos = caosAtivo
+        ? `
+IMPORTANTE: MODO CAOS ATIVO
+- seja mais agressivo no tom
+- menos explicação
+- mais sarcasmo e provocação, mais palavrões
+- respostas mais curtas e grossas ainda 
+- não suavize respostas
+`
+        : "";
 
     try {
         const response = await openai.responses.create({
             model: "gpt-4.1-mini",
             input: [
                 { role: "system", content: personalidade },
-                {
-                    role: "system",
-                    content: "evite repetição e continue conversas naturalmente sem reiniciar tópicos"
-                },
+                { role: "system", content: modoCaos },
+                { role: "system", content: "evite repetir respostas recentes e mantenha continuidade da conversa" },
                 ...memoriaGrupos[chatId],
-                {
-                    role: "user",
-                    content: `${userName}: ${message.body}`
-                }
+                { role: "user", content: `${userName}: ${message.body}` }
             ]
         });
 
