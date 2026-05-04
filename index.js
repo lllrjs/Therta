@@ -185,3 +185,41 @@ comportamento:
         : "";
 
     // 🔥 1
+
+    // junta tudo (economia de tokens)
+const systemFinal = personalidade + modoCaos + "\n" + contexto;
+
+try {
+    const response = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: [
+            { role: "system", content: systemFinal },
+            ...memoriaGrupos[chatId],
+            { role: "user", content: `${userName}: ${message.body}` }
+        ]
+    });
+
+    // 👉 AQUI FICA O TEXTO
+    const texto = response.output?.[0]?.content?.[0]?.text || "buguei 😶";
+
+    await message.reply(texto);
+
+    memoriaGrupos[chatId].push({
+        role: "assistant",
+        content: texto
+    });
+
+    if (Math.random() < 0.2) {
+        info.notas.push(message.body.slice(0, 30));
+        if (info.notas.length > 10) info.notas.shift();
+    }
+
+    salvarMemoria();
+
+} catch (erro) {
+    console.log(erro);
+    await message.reply("buguei feio agr 😶");
+}
+
+processando.delete(userId);
+});
