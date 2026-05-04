@@ -102,7 +102,7 @@ client.on('message', async message => {
         content: `${userName}: ${message.body}`
     });
 
-    if (memoriaGrupos[chatId].length > 12) {
+    if (memoriaGrupos[chatId].length > 6) {
         memoriaGrupos[chatId].shift();
     }
 
