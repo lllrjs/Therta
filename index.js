@@ -209,8 +209,6 @@ MODO CAOS ATIVO:
             modoCaos +
             "\n evite repetir respostas e mantenha continuidade natural";
 
-        const mensagemFinal = `${userName}: ${message.body.slice(0, 120)}`;
-
         const response = await openai.responses.create({
             model: "gpt-4.1-mini",
             input: [
