@@ -193,6 +193,7 @@ IMPORTANTE: MODO CAOS ATIVO
         : "";
 
     try {
+        const systemFinal = personalidade + "\n" + modoCaos + "\n evite repetir respostas e mantenha continuidade natural da conversa";
         const response = await openai.responses.create({
            model: "gpt-4.1-mini",
            input: [
