@@ -195,13 +195,21 @@ IMPORTANTE: MODO CAOS ATIVO
     try {
         const systemFinal = personalidade + "\n" + modoCaos + "\n evite repetir respostas e mantenha continuidade natural da conversa";
         const response = await openai.responses.create({
-           model: "gpt-4.1-mini",
-           input: [
-        { role: "system", content: systemFinal },
-        ...memoriaGrupos[chatId],
-        { role: "user", content: `${userName}: ${message.body}` }
-    ]
-});
+             model: "gpt-4.1-mini",
+             input: [
+          { role: "system", content: systemFinal },
+          ...memoriaGrupos[chatId],
+          { role: "user", content: `${userName}: ${message.body}` }
+       ]
+     });
+        const texto = response.output_text || "to pensando aqui kkk";
+
+    await message.reply(texto);
+
+} catch (erro) {
+    console.log(erro);
+    await message.reply("buguei feio agr 😶");
+    }
 
         const texto = response.output_text;
 
