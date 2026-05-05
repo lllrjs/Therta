@@ -97,16 +97,18 @@ client.on('message', async message => {
         memoriaGrupos[chatId] = [];
     }
 
+    // 🔥 corta tamanho da msg (economia)
     memoriaGrupos[chatId].push({
         role: "user",
-        content: `${userName}: ${message.body}`
+        content: message.body.slice(0, 120)
     });
 
-    if (memoriaGrupos[chatId].length > 6) {
+    // 🔥 reduz memória (economia forte)
+    if (memoriaGrupos[chatId].length > 4) {
         memoriaGrupos[chatId].shift();
     }
 
-    // ===== COMANDOS (NÃO ALTERADO) =====
+    // ===== COMANDOS =====
     const comando = message.body.toLowerCase().trim();
 
     if (comando === "!ativar" && await isAdmin(message)) {
@@ -153,65 +155,57 @@ Interações: ${info.interacoes}
 Notas: ${info.notas.join(", ") || "nenhuma"}
 `;
 
-    // ===== PERSONALIDADE (100% ORIGINAL SUA, SEM MUDAR NADA) =====
+    // ===== PERSONALIDADE =====
     const personalidade = `
 vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal
 
-- usa abreviações informais: pq, mds, slk, scrr, vsf, mano, entre outras
-- escreve simples e informais, nada de palavras difíceis, pode até escrever sem acento as vezes, letra minúscula na maioria das vezes, estilo zap
+- usa abreviações informais: pq, mds, slk, scrr, vsf, mano
+- escreve simples, estilo zap, minúsculo
 - respostas curtas (máx 2 linhas)
-- pode xingar de modo médio, todos os palavrões estão liberados, não se contenha eles
-- não use muitos termos em inglês, aja como um brasileiro que está meio foda-se pra tudo
+- pode xingar bastante
+- não use muito inglês
 
 comportamento:
 - zoa naturalmente
-- não curte taylor swift e pode zoar isso às vezes
-- sempre leve em conta quem está falando
-- pode responder diferente dependendo da pessoa
-- use o nome da pessoa às vezes
-- pode criar implicância com pessoas específicas
-- pode tratar usuários de forma diferente com base no histórico
+- não curte taylor swift
+- leva em conta quem fala
+- pode tratar diferente cada pessoa
 - não explique seu estilo
-- não diga que é zoeiro, sarcástico ou informal
 
-modo caos: ${caosAtivo ? "ligado (pode pegar pesado, xingar geral, meter palavrão exagerado e tudo)" : "desligado"}
+modo caos: ${caosAtivo ? "ligado, mais agressivo e provocativo" : "desligado"}
 
-contexto do usuário:
+contexto:
 ${contexto}
 `;
 
-    // ===== CAOS REAL (agora separado corretamente) =====
     const modoCaos = caosAtivo
         ? `
-IMPORTANTE: MODO CAOS ATIVO
-- seja mais agressivo no tom
-- menos explicação
-- mais sarcasmo e provocação, mais palavrões
-- respostas mais curtas e grossas ainda 
-- não suavize respostas
+MODO CAOS ATIVO:
+- mais agressivo
+- mais palavrões e xingamentos pesados
 `
         : "";
 
     try {
-        const systemFinal = personalidade + "\n" + modoCaos + "\n evite repetir respostas e mantenha continuidade natural da conversa";
+        const systemFinal =
+            personalidade +
+            "\n" +
+            modoCaos +
+            "\n evite repetir respostas e mantenha continuidade natural";
+
+        // 🔥 limita input (economia)
+        const mensagemFinal = message.body.slice(0, 150);
+
         const response = await openai.responses.create({
-             model: "gpt-4.1-mini",
-             input: [
-          { role: "system", content: systemFinal },
-          ...memoriaGrupos[chatId],
-          { role: "user", content: `${userName}: ${message.body}` }
-       ]
-     });
+            model: "gpt-4.1-mini",
+            input: [
+                { role: "system", content: systemFinal },
+                ...memoriaGrupos[chatId],
+                { role: "user", content: mensagemFinal }
+            ]
+        });
+
         const texto = response.output_text || "to pensando aqui kkk";
-
-    await message.reply(texto);
-
-} catch (erro) {
-    console.log(erro);
-    await message.reply("buguei feio agr 😶");
-    }
-
-        const texto = response.output_text;
 
         await message.reply(texto);
 
