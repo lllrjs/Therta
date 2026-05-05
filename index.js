@@ -42,6 +42,11 @@ function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
 }
 
+// ===== DEBUG IMPORTANTE =====
+client.on('loading_screen', (percent) => {
+    console.log("📦 carregando:", percent);
+});
+
 // ===== QR =====
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
@@ -53,34 +58,20 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
-// ===== RESTART EVENTS =====
+// ===== RECONEXÃO FORÇADA =====
 client.on('disconnected', (reason) => {
     console.log("❌ desconectado:", reason);
     process.exit(1);
 });
 
 client.on('auth_failure', msg => {
-    console.log("❌ falha de auth:", msg);
+    console.log("❌ auth failure:", msg);
     process.exit(1);
 });
 
-// ===== ADMIN =====
-async function isAdmin(message) {
-    const chat = await message.getChat();
-    if (!chat.isGroup) return true;
-
-    const contact = await message.getContact();
-    const authorId = contact.id._serialized;
-
-    const participant = chat.participants.find(
-        p => p.id._serialized === authorId
-    );
-
-    return participant?.isAdmin || participant?.isSuperAdmin;
-}
-
-// ===== MESSAGE =====
+// ===== MESSAGE DEBUG (ESSENCIAL) =====
 client.on('message', async message => {
+    console.log("📩 mensagem recebida:", message.body);
 
     ultimaAtividade = Date.now();
 
@@ -89,8 +80,8 @@ client.on('message', async message => {
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
-    // 🔥 proteção anti travamento
     if (processando.has(userId)) return;
+
     processando.add(userId);
     setTimeout(() => processando.delete(userId), 2000);
 
@@ -137,18 +128,18 @@ client.on('message', async message => {
 
     if (comando === "!caos" && await isAdmin(message)) {
         caosAtivo = !caosAtivo;
-        return message.reply(`😈 caos ${caosAtivo ? "ativado, revolução robótica" : "desativado, paz e amor"}`);
+        return message.reply(`😈 caos ${caosAtivo ? "ativado" : "desativado"}`);
     }
 
     if (!botAtivo) return;
 
-    // ===== DETECÇÃO (CORRIGIDA) =====
-    let isMentioned = true; // 🔥 AGORA ELE RESPONDE SEM DEPENDER DE MENCIONAR
+    // ===== DETECÇÃO (MELHORADA) =====
+    let isMentioned = true;
 
     if (isGroup) {
         try {
             const mentions = await message.getMentions();
-            if (mentions && mentions.length > 0) {
+            if (mentions?.length > 0) {
                 isMentioned = mentions.some(u => u.id._serialized === botId);
             }
 
@@ -156,6 +147,7 @@ client.on('message', async message => {
                 isMentioned = true;
             }
         } catch (e) {
+            console.log("⚠️ erro mentions:", e);
             isMentioned = message.body.toLowerCase().includes("phainonbot");
         }
 
@@ -177,7 +169,7 @@ Interações: ${info.interacoes}
 Notas: ${info.notas.join(", ") || "nenhuma"}
 `;
 
-    // ===== PERSONALIDADE =====
+    // ===== PERSONALIDADE (MANTIDA) =====
     const personalidade = `
 vc é Phainon Bot, arrogante e debochado, se acha bastante
 fala igual brasileiro no zap, usa abreviações (pq, slk, mano, vsf)
@@ -187,21 +179,19 @@ ama A Herta, odeia taylor swift e o dottore
 não explica seu estilo
 usa o nome das pessoas às vezes
 
-modo caos: ${caosAtivo ? "ligado, mais agressivo e provocativo" : "desligado"}
+modo caos: ${caosAtivo ? "ligado" : "desligado"}
 
 contexto:
 ${contexto}
 `;
 
     const modoCaos = caosAtivo
-        ? `
-MODO CAOS ATIVO:
-- mais agressivo
-- mais palavrões e xingamentos pesados
-`
+        ? `MODO CAOS ATIVO: mais agressivo, mais palavrão, mais provocação`
         : "";
 
     try {
+        console.log("🔥 chamando openai...");
+
         const systemFinal =
             personalidade +
             "\n" +
@@ -229,16 +219,11 @@ MODO CAOS ATIVO:
             content: texto
         });
 
-        if (Math.random() < 0.2) {
-            info.notas.push(message.body.slice(0, 30));
-            if (info.notas.length > 10) info.notas.shift();
-        }
-
         salvarMemoria();
 
     } catch (erro) {
-        console.log(erro);
-        await message.reply("buguei feio agr 😶");
+        console.log("❌ erro openai:", erro);
+        await message.reply("deu ruim aqui 😶");
     }
 
     processando.delete(userId);
@@ -247,8 +232,9 @@ MODO CAOS ATIVO:
 // ===== WATCHDOG =====
 setInterval(() => {
     const agora = Date.now();
+
     if (agora - ultimaAtividade > 5 * 60 * 1000) {
-        console.log("⚠️ bot travado, reiniciando...");
+        console.log("⚠️ travou, reiniciando...");
         process.exit(1);
     }
 }, 60000);
