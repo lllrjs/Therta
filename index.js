@@ -117,7 +117,7 @@ client.on('message', async message => {
         content: `${userName}: ${message.body.slice(0, 100)}`
     });
 
-    if (memoriaGrupos[chatId].length > 4) {
+    if (memoriaGrupos[chatId].length > 7) {
         memoriaGrupos[chatId].shift();
     }
 
