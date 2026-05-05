@@ -212,10 +212,6 @@ MODO CAOS ATIVO:
             input: [
                 { role: "system", content: systemFinal },
                 ...(memoriaGrupos[chatId] || []),
-                {
-                    role: "user",
-                    content: `${userName}: ${message.body.slice(0, 120)}`
-                }
             ]
         });
 
