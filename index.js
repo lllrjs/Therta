@@ -28,8 +28,6 @@ let caosAtivo = false;
 let botAtivo = true;
 
 let processando = new Set();
-
-// 🔥 NOVO (WATCHDOG)
 let ultimaAtividade = Date.now();
 
 // ===== MEMÓRIA =====
@@ -55,7 +53,7 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
-// 🔥 NOVOS EVENTS (AUTO-RESTART)
+// ===== RESTART EVENTS =====
 client.on('disconnected', (reason) => {
     console.log("❌ desconectado:", reason);
     process.exit(1);
@@ -84,7 +82,6 @@ async function isAdmin(message) {
 // ===== MESSAGE =====
 client.on('message', async message => {
 
-    // 🔥 ATUALIZA ATIVIDADE
     ultimaAtividade = Date.now();
 
     if (message.fromMe) return;
@@ -92,9 +89,10 @@ client.on('message', async message => {
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
+    // 🔥 proteção anti travamento
     if (processando.has(userId)) return;
     processando.add(userId);
-    setTimeout(() => processando.delete(userId), 2500);
+    setTimeout(() => processando.delete(userId), 2000);
 
     const isGroup = message.from.endsWith('@g.us');
     const userName = contact.pushname || contact.name || "desconhecido";
@@ -115,13 +113,11 @@ client.on('message', async message => {
         memoriaGrupos[chatId] = [];
     }
 
-    // 🔥 corta tamanho da msg (economia)
     memoriaGrupos[chatId].push({
         role: "user",
         content: `${userName}: ${message.body.slice(0, 100)}`
     });
 
-    // 🔥 reduz memória (economia forte)
     if (memoriaGrupos[chatId].length > 4) {
         memoriaGrupos[chatId].shift();
     }
@@ -146,17 +142,21 @@ client.on('message', async message => {
 
     if (!botAtivo) return;
 
-    // ===== DETECÇÃO =====
-    let isMentioned = false;
+    // ===== DETECÇÃO (CORRIGIDA) =====
+    let isMentioned = true; // 🔥 AGORA ELE RESPONDE SEM DEPENDER DE MENCIONAR
 
     if (isGroup) {
         try {
             const mentions = await message.getMentions();
-            isMentioned = mentions.some(u => u.id._serialized === botId);
-        } catch {}
+            if (mentions && mentions.length > 0) {
+                isMentioned = mentions.some(u => u.id._serialized === botId);
+            }
 
-        if (!isMentioned && message.body.toLowerCase().includes("phainonbot")) {
-            isMentioned = true;
+            if (!isMentioned && message.body.toLowerCase().includes("phainonbot")) {
+                isMentioned = true;
+            }
+        } catch (e) {
+            isMentioned = message.body.toLowerCase().includes("phainonbot");
         }
 
         if (!isMentioned) {
@@ -166,10 +166,10 @@ client.on('message', async message => {
     }
 
     const info = memoria[userId] || {
-    nome: userName,
-    interacoes: 0,
-    notas: []
-};
+        nome: userName,
+        interacoes: 0,
+        notas: []
+    };
 
     const contexto = `
 Nome: ${info.nome}
@@ -186,7 +186,6 @@ zoa e xinga bastante, provoca pessoas
 ama A Herta, odeia taylor swift e o dottore
 não explica seu estilo
 usa o nome das pessoas às vezes
-;
 
 modo caos: ${caosAtivo ? "ligado, mais agressivo e provocativo" : "desligado"}
 
@@ -210,16 +209,16 @@ MODO CAOS ATIVO:
             "\n evite repetir respostas e mantenha continuidade natural";
 
         const response = await openai.responses.create({
-    model: "gpt-4.1-mini",
-    input: [
-        { role: "system", content: systemFinal },
-        ...(memoriaGrupos[chatId] || []),
-        {
-            role: "user",
-            content: `${userName}: ${message.body.slice(0, 120)}`
-        }
-    ]
-});
+            model: "gpt-4.1-mini",
+            input: [
+                { role: "system", content: systemFinal },
+                ...(memoriaGrupos[chatId] || []),
+                {
+                    role: "user",
+                    content: `${userName}: ${message.body.slice(0, 120)}`
+                }
+            ]
+        });
 
         const texto = response.output_text || "to pensando aqui kkk";
 
@@ -245,16 +244,13 @@ MODO CAOS ATIVO:
     processando.delete(userId);
 });
 
-client.initialize();
-
-// 🔥 WATCHDOG FINAL (ANTI-TRAVAMENTO)
+// ===== WATCHDOG =====
 setInterval(() => {
     const agora = Date.now();
-    const tempoParado = agora - ultimaAtividade;
-
-    if (tempoParado > 5 * 60 * 1000) {
+    if (agora - ultimaAtividade > 5 * 60 * 1000) {
         console.log("⚠️ bot travado, reiniciando...");
         process.exit(1);
     }
-
 }, 60000);
+
+client.initialize();
