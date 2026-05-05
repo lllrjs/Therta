@@ -215,7 +215,7 @@ MODO CAOS ATIVO:
             model: "gpt-4.1-mini",
             input: [
                 { role: "system", content: systemFinal },
-                ...memoriaGrupos[chatId] || []),
+                ...(memoriaGrupos[chatId] || []),
             ]
         });
 
