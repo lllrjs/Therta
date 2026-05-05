@@ -165,7 +165,11 @@ client.on('message', async message => {
         }
     }
 
-    const info = memoria[userId];
+    const info = memoria[userId] || {
+    nome: userName,
+    interacoes: 0,
+    notas: []
+};
 
     const contexto = `
 Nome: ${info.nome}
