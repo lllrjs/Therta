@@ -210,12 +210,16 @@ MODO CAOS ATIVO:
             "\n evite repetir respostas e mantenha continuidade natural";
 
         const response = await openai.responses.create({
-            model: "gpt-4.1-mini",
-            input: [
-                { role: "system", content: systemFinal },
-                ...(memoriaGrupos[chatId] || []),
-            ]
-        });
+    model: "gpt-4.1-mini",
+    input: [
+        { role: "system", content: systemFinal },
+        ...(memoriaGrupos[chatId] || []),
+        {
+            role: "user",
+            content: `${userName}: ${message.body.slice(0, 120)}`
+        }
+    ]
+});
 
         const texto = response.output_text || "to pensando aqui kkk";
 
