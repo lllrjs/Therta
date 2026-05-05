@@ -142,7 +142,7 @@ client.on('message', async message => {
     if (!botAtivo) return;
 
     // ===== DETECÇÃO =====
-    let isMentioned = true;
+    let isMentioned = false;
 
     if (isGroup) {
         try {
