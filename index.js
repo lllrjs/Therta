@@ -194,15 +194,13 @@ IMPORTANTE: MODO CAOS ATIVO
 
     try {
         const response = await openai.responses.create({
-            model: "gpt-4.1-mini",
-            input: [
-                { role: "system", content: personalidade },
-                { role: "system", content: modoCaos },
-                { role: "system", content: "evite repetir respostas recentes e mantenha continuidade da conversa" },
-                ...memoriaGrupos[chatId],
-                { role: "user", content: `${userName}: ${message.body}` }
-            ]
-        });
+           model: "gpt-4.1-mini",
+           input: [
+        { role: "system", content: systemFinal },
+        ...memoriaGrupos[chatId],
+        { role: "user", content: `${userName}: ${message.body}` }
+    ]
+});
 
         const texto = response.output_text;
 
