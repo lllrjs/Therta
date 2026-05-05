@@ -42,11 +42,6 @@ function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
 }
 
-// ===== DEBUG IMPORTANTE =====
-client.on('loading_screen', (percent) => {
-    console.log("📦 carregando:", percent);
-});
-
 // ===== QR =====
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
@@ -58,20 +53,34 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
-// ===== RECONEXÃO FORÇADA =====
+// 🔥 AUTO-RESTART EVENTS
 client.on('disconnected', (reason) => {
     console.log("❌ desconectado:", reason);
     process.exit(1);
 });
 
 client.on('auth_failure', msg => {
-    console.log("❌ auth failure:", msg);
+    console.log("❌ falha de auth:", msg);
     process.exit(1);
 });
 
-// ===== MESSAGE DEBUG (ESSENCIAL) =====
+// ===== ADMIN =====
+async function isAdmin(message) {
+    const chat = await message.getChat();
+    if (!chat.isGroup) return true;
+
+    const contact = await message.getContact();
+    const authorId = contact.id._serialized;
+
+    const participant = chat.participants.find(
+        p => p.id._serialized === authorId
+    );
+
+    return participant?.isAdmin || participant?.isSuperAdmin;
+}
+
+// ===== MESSAGE =====
 client.on('message', async message => {
-    console.log("📩 mensagem recebida:", message.body);
 
     ultimaAtividade = Date.now();
 
@@ -81,7 +90,6 @@ client.on('message', async message => {
     const userId = contact.id._serialized;
 
     if (processando.has(userId)) return;
-
     processando.add(userId);
     setTimeout(() => processando.delete(userId), 2000);
 
@@ -133,7 +141,7 @@ client.on('message', async message => {
 
     if (!botAtivo) return;
 
-    // ===== DETECÇÃO (MELHORADA) =====
+    // ===== DETECÇÃO =====
     let isMentioned = true;
 
     if (isGroup) {
@@ -146,8 +154,7 @@ client.on('message', async message => {
             if (!isMentioned && message.body.toLowerCase().includes("phainonbot")) {
                 isMentioned = true;
             }
-        } catch (e) {
-            console.log("⚠️ erro mentions:", e);
+        } catch {
             isMentioned = message.body.toLowerCase().includes("phainonbot");
         }
 
@@ -169,7 +176,7 @@ Interações: ${info.interacoes}
 Notas: ${info.notas.join(", ") || "nenhuma"}
 `;
 
-    // ===== PERSONALIDADE (MANTIDA) =====
+    // ===== PERSONALIDADE =====
     const personalidade = `
 vc é Phainon Bot, arrogante e debochado, se acha bastante
 fala igual brasileiro no zap, usa abreviações (pq, slk, mano, vsf)
@@ -186,12 +193,14 @@ ${contexto}
 `;
 
     const modoCaos = caosAtivo
-        ? `MODO CAOS ATIVO: mais agressivo, mais palavrão, mais provocação`
+        ? `
+MODO CAOS ATIVO:
+- mais agressivo
+- mais palavrões e xingamentos pesados
+`
         : "";
 
     try {
-        console.log("🔥 chamando openai...");
-
         const systemFinal =
             personalidade +
             "\n" +
@@ -219,11 +228,16 @@ ${contexto}
             content: texto
         });
 
+        if (Math.random() < 0.2) {
+            info.notas.push(message.body.slice(0, 30));
+            if (info.notas.length > 10) info.notas.shift();
+        }
+
         salvarMemoria();
 
     } catch (erro) {
-        console.log("❌ erro openai:", erro);
-        await message.reply("deu ruim aqui 😶");
+        console.log(erro);
+        await message.reply("buguei feio agr 😶");
     }
 
     processando.delete(userId);
@@ -234,9 +248,10 @@ setInterval(() => {
     const agora = Date.now();
 
     if (agora - ultimaAtividade > 5 * 60 * 1000) {
-        console.log("⚠️ travou, reiniciando...");
+        console.log("⚠️ bot travado, reiniciando...");
         process.exit(1);
     }
+
 }, 60000);
 
 client.initialize();
