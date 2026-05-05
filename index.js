@@ -100,7 +100,7 @@ client.on('message', async message => {
     // 🔥 corta tamanho da msg (economia)
     memoriaGrupos[chatId].push({
         role: "user",
-        content: message.body.slice(0, 120)
+        content: `${userName}: ${message.body.slice(0, 100)}`
     });
 
     // 🔥 reduz memória (economia forte)
@@ -194,8 +194,7 @@ MODO CAOS ATIVO:
             "\n evite repetir respostas e mantenha continuidade natural";
 
         // 🔥 limita input (economia)
-        const mensagemFinal = message.body.slice(0, 150);
-
+        const mensagemFinal = `${userName}: ${message.body.slice(0, 120)}`;
         const response = await openai.responses.create({
             model: "gpt-4.1-mini",
             input: [
