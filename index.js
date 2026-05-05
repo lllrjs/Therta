@@ -29,6 +29,9 @@ let botAtivo = true;
 
 let processando = new Set();
 
+// 🔥 NOVO (WATCHDOG)
+let ultimaAtividade = Date.now();
+
 // ===== MEMÓRIA =====
 let memoria = {};
 let memoriaGrupos = {};
@@ -52,6 +55,17 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
+// 🔥 NOVOS EVENTS (AUTO-RESTART)
+client.on('disconnected', (reason) => {
+    console.log("❌ desconectado:", reason);
+    process.exit(1);
+});
+
+client.on('auth_failure', msg => {
+    console.log("❌ falha de auth:", msg);
+    process.exit(1);
+});
+
 // ===== ADMIN =====
 async function isAdmin(message) {
     const chat = await message.getChat();
@@ -69,6 +83,10 @@ async function isAdmin(message) {
 
 // ===== MESSAGE =====
 client.on('message', async message => {
+
+    // 🔥 ATUALIZA ATIVIDADE
+    ultimaAtividade = Date.now();
+
     if (message.fromMe) return;
 
     const contact = await message.getContact();
@@ -162,15 +180,16 @@ vc é um bot zoeiro chamado PhainonBot, debochado e 100% informal
 - usa abreviações informais: pq, mds, slk, scrr, vsf, mano
 - escreve simples, estilo zap, minúsculo
 - respostas curtas (máx 2 linhas)
-- pode xingar bastante
-- não use muito inglês
+- xinga bastante
+- não use muitos termos em inglês
 
 comportamento:
 - zoa naturalmente
-- não curte taylor swift
+- não curte taylor swift nem o dottore
 - leva em conta quem fala
 - pode tratar diferente cada pessoa
 - não explique seu estilo
+- ama A Herta
 
 modo caos: ${caosAtivo ? "ligado, mais agressivo e provocativo" : "desligado"}
 
@@ -193,8 +212,8 @@ MODO CAOS ATIVO:
             modoCaos +
             "\n evite repetir respostas e mantenha continuidade natural";
 
-        // 🔥 limita input (economia)
         const mensagemFinal = `${userName}: ${message.body.slice(0, 120)}`;
+
         const response = await openai.responses.create({
             model: "gpt-4.1-mini",
             input: [
@@ -229,3 +248,15 @@ MODO CAOS ATIVO:
 });
 
 client.initialize();
+
+// 🔥 WATCHDOG FINAL (ANTI-TRAVAMENTO)
+setInterval(() => {
+    const agora = Date.now();
+    const tempoParado = agora - ultimaAtividade;
+
+    if (tempoParado > 5 * 60 * 1000) {
+        console.log("⚠️ bot travado, reiniciando...");
+        process.exit(1);
+    }
+
+}, 60000);
