@@ -563,7 +563,7 @@ client.on('message', async message => {
             return message.reply(txt);
         }
 
-        const file = await gerarColagem(buffers);
+        const file = await gerarWrap(buffers);
         const media = MessageMedia.fromFilePath(file);
 
         return client.sendMessage(chatId, media, {
