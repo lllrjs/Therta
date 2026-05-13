@@ -481,32 +481,34 @@ client.on('message', async message => {
     }
 
     // =========================
-    // FM WRAP
-    // =========================
-    if (comando === "!fm wrap") {
+// FM WRAP
+// =========================
+if (comando === "!fm wrap") {
     try {
-        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=9`;
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=9`;
 
         const { data } = await axios.get(url);
 
+        const albums = data.topalbums.album;
+
         let txt = "📊 wrap do mês:\n\n";
 
-        data.topartists.artist.forEach((a, i) => {
-            txt += `${i + 1}. ${a.name}\n`;
+        albums.forEach((a, i) => {
+            txt += `${i + 1}. ${a.artist.name} - ${a.name}\n`;
         });
 
-        // ===== COLAGEM DE IMAGENS =====
-const imagens = [];
+        // ===== IMAGENS =====
+        const imagens = [];
 
-for (const a of data.topartists.artist) {
-    const img =
-        a.image?.[3]?.["#text"] ||
-        a.image?.[2]?.["#text"];
+        for (const a of albums) {
 
-    if (img) imagens.push(img);
-}
-        
-        
+            const img =
+                a.image?.[3]?.["#text"] ||
+                a.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
+        }
+
         if (imagens.length === 0) {
             return message.reply(txt);
         }
@@ -515,11 +517,13 @@ for (const a of data.topartists.artist) {
 
         for (const url of imagens) {
             try {
+
                 const res = await axios.get(url, {
                     responseType: "arraybuffer"
                 });
 
                 buffers.push(Buffer.from(res.data));
+
             } catch {}
         }
 
@@ -528,16 +532,18 @@ for (const a of data.topartists.artist) {
         }
 
         const file = await gerarWrap(buffers);
+
         const media = MessageMedia.fromFilePath(file);
 
         return client.sendMessage(chatId, media, {
             caption: txt
         });
 
-    } catch {
+    } catch (err) {
+        console.log(err);
         return message.reply("erro wrap 😶");
     }
-    }
+}
 
     // =========================
 // FM ATUAL + CAPA DO ÁLBUM
