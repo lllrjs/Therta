@@ -421,22 +421,58 @@ client.on('message', async message => {
     // FM TOP ALBUNS
     // =========================
     if (comando === "!fm topalbuns") {
-        try {
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
+    if (comando === "!fm topalbuns") {
+    try {
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
 
-            const { data } = await axios.get(url);
+        const { data } = await axios.get(url);
 
-            let txt = "💿 top albuns:\n\n";
+        const albums = data.topalbums.album;
 
-            data.topalbums.album.forEach((a, i) => {
-                txt += `${i+1}. ${a.artist.name} - ${a.name}\n`;
-            });
+        let txt = "💿 top albuns:\n\n";
 
-            return message.reply(txt);
+        albums.forEach((a, i) => {
+            txt += `${i + 1}. ${a.artist.name} - ${a.name}\n`;
+        });
 
-        } catch {
-            return message.reply("erro albuns top 😶");
+        // ===== COLAGEM =====
+        const imagens = [];
+
+        for (const a of albums) {
+            const img =
+                a.image?.[3]?.["#text"] ||
+                a.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
         }
+
+        if (imagens.length === 0) {
+            return message.reply(txt);
+        }
+
+        const buffers = [];
+
+        for (const url of imagens) {
+            try {
+                const res = await axios.get(url, { responseType: "arraybuffer" });
+                buffers.push(Buffer.from(res.data));
+            } catch {}
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch {
+        return message.reply("erro albuns top 😶");
+    }
     }
 
     // =========================
