@@ -462,7 +462,6 @@ client.on('message', async message => {
     // FM TOP ALBUNS
     // =========================
     if (comando === "!fm topalbuns") {
-    if (comando === "!fm topalbuns") {
     try {
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
 
@@ -519,7 +518,6 @@ client.on('message', async message => {
     // =========================
     // FM WRAP
     // =========================
-    if (comando === "!fm wrap") {
     if (comando === "!fm wrap") {
     try {
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=9`;
