@@ -398,7 +398,6 @@ client.on('message', async message => {
         return message.reply("erro albuns 😶");
     }
     }
-    }
 
     // =========================
     // FM TOP MUSICAS
@@ -456,7 +455,7 @@ client.on('message', async message => {
         return message.reply("erro top 😶");
     }
 }
-    }
+
 
     // =========================
     // FM TOP ALBUNS
