@@ -454,7 +454,7 @@ client.on('message', async message => {
     } catch {
         return message.reply("erro top 😶");
     }
-}
+    }
 
 
     // =========================
