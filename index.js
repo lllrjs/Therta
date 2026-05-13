@@ -327,22 +327,59 @@ client.on('message', async message => {
     // FM WRAP
     // =========================
     if (comando === "!fm wrap") {
-        try {
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=5`;
+    if (comando === "!fm wrap") {
+    try {
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=9`;
 
-            const { data } = await axios.get(url);
+        const { data } = await axios.get(url);
 
-            let txt = "📊 wrap do mês:\n\n";
+        let txt = "📊 wrap do mês:\n\n";
 
-            data.topartists.artist.forEach((a, i) => {
-                txt += `${i+1}. ${a.name}\n`;
-            });
+        data.topartists.artist.forEach((a, i) => {
+            txt += `${i + 1}. ${a.name}\n`;
+        });
 
-            return message.reply(txt);
+        // ===== COLAGEM DE IMAGENS =====
+        const imagens = [];
 
-        } catch {
-            return message.reply("erro wrap 😶");
+        for (const a of data.topartists.artist) {
+            const img =
+                a.image?.[3]?.["#text"] ||
+                a.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
         }
+
+        if (imagens.length === 0) {
+            return message.reply(txt);
+        }
+
+        const buffers = [];
+
+        for (const url of imagens) {
+            try {
+                const res = await axios.get(url, {
+                    responseType: "arraybuffer"
+                });
+
+                buffers.push(Buffer.from(res.data));
+            } catch {}
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch {
+        return message.reply("erro wrap 😶");
+    }
     }
 
     // =========================
