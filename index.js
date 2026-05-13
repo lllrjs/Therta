@@ -299,7 +299,7 @@ client.on('message', async message => {
                 txt += `${i+1}. ${t.artist["#text"]} - ${t.name}\n`;
             });
 
-            async function gerarColagem(buffers, output = "colagem.jpg") {
+            
     const size = 300;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
