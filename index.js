@@ -299,10 +299,6 @@ client.on('message', async message => {
                 txt += `${i+1}. ${t.artist["#text"]} - ${t.name}\n`;
             });
 
-            
- return message.reply(txt);
-            }
-
             return message.reply(txt);
 
         } catch {
