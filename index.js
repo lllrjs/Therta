@@ -9,20 +9,16 @@ const path = require('path');
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
     const size = 300;
-    const gap = 20;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
     const rows = Math.ceil(buffers.length / cols);
 
-    const width = cols * size + (cols - 1) * gap;
-    const height = rows * size + (rows - 1) * gap;
-
     const base = sharp({
         create: {
-            width,
-            height,
+            width: cols * size,
+            height: rows * size,
             channels: 3,
-            background: "#1db954"
+            background: "#111"
         }
     });
 
@@ -35,13 +31,10 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
             .jpeg()
             .toBuffer();
 
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-
         layers.push({
             input: img,
-            left: col * (size + gap),
-            top: row * (size + gap)
+            left: (i % cols) * size,
+            top: Math.floor(i / cols) * size
         });
     }
 
@@ -52,6 +45,8 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 
     return output;
 }
+
+
 
 const client = new Client({
     authStrategy: new LocalAuth(),
