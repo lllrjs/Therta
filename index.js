@@ -317,22 +317,58 @@ client.on('message', async message => {
     // FM TOP MUSICAS
     // =========================
     if (comando === "!fm topmusicas") {
-        try {
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
+    try {
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
 
-            const { data } = await axios.get(url);
+        const { data } = await axios.get(url);
 
-            let txt = "🔥 top musicas:\n\n";
+        let txt = "🔥 top musicas:\n\n";
 
-            data.toptracks.track.forEach((t, i) => {
-                txt += `${i+1}. ${t.artist.name} - ${t.name}\n`;
-            });
+        const tracks = data.toptracks.track;
 
-            return message.reply(txt);
+        tracks.forEach((t, i) => {
+            txt += `${i + 1}. ${t.artist.name} - ${t.name}\n`;
+        });
 
-        } catch {
-            return message.reply("erro top 😶");
+        // ===== COLAGEM =====
+        const imagens = [];
+
+        for (const t of tracks) {
+            const img =
+                t.image?.[3]?.["#text"] ||
+                t.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
         }
+
+        if (imagens.length === 0) {
+            return message.reply(txt);
+        }
+
+        const buffers = [];
+
+        for (const url of imagens) {
+            try {
+                const res = await axios.get(url, { responseType: "arraybuffer" });
+                buffers.push(Buffer.from(res.data));
+            } catch {}
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch {
+        return message.reply("erro top 😶");
+    }
+}
     }
 
     // =========================
