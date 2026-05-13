@@ -407,17 +407,18 @@ if (comando.startsWith("!fm recentes")) {
     }
 
     // =========================
-    // FM TOP MUSICAS
-    // =========================
-    if (comando === "!fm topmusicas") {
+// FM TOP MUSICAS
+// =========================
+if (comando === "!fm topmusicas") {
     try {
-        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
+
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
 
         const { data } = await axios.get(url);
 
         let txt = "🔥 top musicas:\n\n";
 
-        const tracks = data.toptracks.track;
+        const tracks = data.topalbums.album;
 
         tracks.forEach((t, i) => {
             txt += `${i + 1}. ${t.artist.name} - ${t.name}\n`;
@@ -427,6 +428,7 @@ if (comando.startsWith("!fm recentes")) {
         const imagens = [];
 
         for (const t of tracks) {
+
             const img =
                 t.image?.[3]?.["#text"] ||
                 t.image?.[2]?.["#text"];
@@ -442,8 +444,13 @@ if (comando.startsWith("!fm recentes")) {
 
         for (const url of imagens) {
             try {
-                const res = await axios.get(url, { responseType: "arraybuffer" });
+
+                const res = await axios.get(url, {
+                    responseType: "arraybuffer"
+                });
+
                 buffers.push(Buffer.from(res.data));
+
             } catch {}
         }
 
@@ -452,16 +459,18 @@ if (comando.startsWith("!fm recentes")) {
         }
 
         const file = await gerarColagem(buffers);
+
         const media = MessageMedia.fromFilePath(file);
 
         return client.sendMessage(chatId, media, {
             caption: txt
         });
 
-    } catch {
+    } catch (err) {
+        console.log(err);
         return message.reply("erro top 😶");
     }
-    }
+}
 
 
     // =========================
