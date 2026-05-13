@@ -37,6 +37,9 @@ let botAtivo = true;
 let processando = new Set();
 let ultimaAtividade = Date.now();
 
+// ===== REAÇÃO FM =====
+const pendingDownloads = new Map();
+
 // ===== MEMÓRIA =====
 let memoria = {};
 let memoriaGrupos = {};
@@ -69,32 +72,26 @@ client.on('ready', () => {
     botId = client.info.wid._serialized;
 });
 
-// 🔥 AUTO-RESTART EVENTS
-client.on('disconnected', (reason) => {
-    console.log("❌ desconectado:", reason);
-    process.exit(1);
+// ===== REAÇÃO =====
+client.on('message_reaction', async (reaction) => {
+    try {
+
+        const msgId = reaction.msgId?._serialized;
+        if (!msgId) return;
+
+        const data = pendingDownloads.get(msgId);
+        if (!data) return;
+
+        const chat = await client.getChatById(data.chatId);
+
+        await chat.sendMessage(`/play ${data.music}`);
+
+        pendingDownloads.delete(msgId);
+
+    } catch (err) {
+        console.log(err);
+    }
 });
-
-client.on('auth_failure', msg => {
-    console.log("❌ falha de auth:", msg);
-    process.exit(1);
-});
-
-// ===== ADMIN =====
-async function isAdmin(message) {
-    const chat = await message.getChat();
-
-    if (!chat.isGroup) return true;
-
-    const contact = await message.getContact();
-    const authorId = contact.id._serialized;
-
-    const participant = chat.participants.find(
-        p => p.id._serialized === authorId
-    );
-
-    return participant?.isAdmin || participant?.isSuperAdmin;
-}
 
 // ===== MESSAGE =====
 client.on('message', async message => {
@@ -106,18 +103,7 @@ client.on('message', async message => {
     const contact = await message.getContact();
     const userId = contact.id._serialized;
 
-    // 🔥 ADICIONADO: proteção contra travamento do processando
-    if (processando.has(userId)) {
-        const diff = Date.now() - ultimaAtividade;
-        if (diff > 8000) {
-            processando.delete(userId);
-        } else {
-            return;
-        }
-    }
-
     if (processando.has(userId)) return;
-
     processando.add(userId);
 
     setTimeout(() => processando.delete(userId), 2000);
@@ -150,45 +136,60 @@ client.on('message', async message => {
         memoriaGrupos[chatId].shift();
     }
 
-    // 🔥 ADICIONADO: alias !fm -> !lf
-    let comando = message.body.toLowerCase().trim();
-    if (comando.startsWith("!fm")) {
-        comando = comando.replace("!fm", "!lf");
-    }
+    const comando = message.body.toLowerCase().trim();
 
-    // ===== LAST FM =====
-    if (comando.startsWith("!lf")) {
+    // =========================
+    // 🔥 FM SYSTEM
+    // =========================
+    if (comando.startsWith("!fm")) {
 
         const args = comando.split(" ");
+        const username = lastfmUsers[userId];
 
+        // ===== HELP =====
+        if (args[1] === "help") {
+            processando.delete(userId);
+            return message.reply(
+`🎧 comandos !fm
+
+!fm registrar <user>
+!fm recentes <n>
+!fm albunsrecentes <n>
+!fm topmusicas
+!fm topalbuns
+!fm wrap
+!fm help
+
+💡 dica: !fm sem comando mostra a música atual`
+            );
+        }
+
+        // ===== REGISTRAR =====
         if (args[1] === "registrar") {
 
-            const username = args[2];
+            const user = args[2];
 
-            if (!username) {
+            if (!user) {
                 processando.delete(userId);
-                return message.reply("usa: !lf registrar usuario");
+                return message.reply("usa: !fm registrar <user>");
             }
 
-            lastfmUsers[userId] = username;
+            lastfmUsers[userId] = user;
             salvarLastfm();
 
             processando.delete(userId);
-
-            return message.reply(`✅ lastfm registrado como ${username}`);
+            return message.reply(`✅ lastfm registrado como ${user}`);
         }
-
-        const username = lastfmUsers[userId];
 
         if (!username) {
             processando.delete(userId);
-            return message.reply("vc n registrou seu lastfm ainda 😶\nusa: !lf registrar usuario");
+            return message.reply("vc n registrou seu lastfm ainda 😶 usa: !fm registrar <user>");
         }
 
+        // ===== RECENTES =====
         if (args[1] === "recentes") {
 
             let quantidade = parseInt(args[2]) || 9;
-
             if (quantidade > 16) quantidade = 16;
             if (quantidade < 1) quantidade = 1;
 
@@ -201,89 +202,23 @@ client.on('message', async message => {
 
                 const tracks = data.recenttracks.track;
 
-                if (!tracks || tracks.length === 0) {
-                    processando.delete(userId);
-                    return message.reply("n achei musicas recentes 😶");
-                }
+                let texto = "🎶 recentes:\n\n";
 
-                const capas = [];
-                let legenda = "";
-
-                for (let i = 0; i < tracks.length; i++) {
-
-                    const track = tracks[i];
-
-                    const artista = track.artist["#text"];
-                    const album = track.album["#text"] || "sem album";
-
-                    legenda += `${i + 1}. ${artista} — ${album}\n`;
-
-                    const capa =
-                        track.image?.[3]?.["#text"] ||
-                        track.image?.[2]?.["#text"];
-
-                    if (capa) {
-                        try {
-                            const response = await axios.get(capa, {
-                                responseType: "arraybuffer"
-                            });
-                            capas.push(Buffer.from(response.data));
-                        } catch {}
-                    }
-                }
-
-                if (capas.length === 0) {
-                    processando.delete(userId);
-                    return message.reply(legenda);
-                }
-
-                const tamanho = 300;
-                const cols = Math.ceil(Math.sqrt(capas.length));
-                const rows = Math.ceil(capas.length / cols);
-
-                const canvas = sharp({
-                    create: {
-                        width: cols * tamanho,
-                        height: rows * tamanho,
-                        channels: 3,
-                        background: "#111"
-                    }
+                tracks.forEach((t, i) => {
+                    texto += `${i + 1}. ${t.artist["#text"]} - ${t.name}\n`;
                 });
-
-                const composites = [];
-
-                for (let i = 0; i < capas.length; i++) {
-
-                    const img = await sharp(capas[i])
-                        .resize(tamanho, tamanho)
-                        .toBuffer();
-
-                    composites.push({
-                        input: img,
-                        top: Math.floor(i / cols) * tamanho,
-                        left: (i % cols) * tamanho
-                    });
-                }
-
-                const output = path.join(__dirname, "recentes.jpg");
-
-                await canvas.composite(composites).jpeg().toFile(output);
-
-                const media = MessageMedia.fromFilePath(output);
 
                 processando.delete(userId);
-
-                return client.sendMessage(message.from, media, {
-                    caption: `💿 Últimos álbuns de ${username}\n\n${legenda}`
-                });
+                return message.reply(texto);
 
             } catch (err) {
                 console.log(err);
                 processando.delete(userId);
-                return message.reply("deu ruim pegando recentes 😶");
+                return message.reply("erro ao buscar recentes 😶");
             }
         }
 
+        // ===== TOP MUSICAS =====
         if (args[1] === "topmusicas") {
 
             try {
@@ -295,31 +230,23 @@ client.on('message', async message => {
 
                 const tracks = data.toptracks.track;
 
-                if (!tracks || tracks.length === 0) {
-                    processando.delete(userId);
-                    return message.reply("n achei top musicas 😶");
-                }
+                let texto = "🔥 top músicas:\n\n";
 
-                let legenda = "";
-
-                for (let i = 0; i < tracks.length; i++) {
-                    const track = tracks[i];
-                    legenda += `${i + 1}. ${track.artist.name} — ${track.name}\n`;
-                }
+                tracks.forEach((t, i) => {
+                    texto += `${i + 1}. ${t.artist.name} - ${t.name}\n`;
+                });
 
                 processando.delete(userId);
-
-                return message.reply(
-                    `🎶 Músicas mais escutadas de ${username}\n\n${legenda}`
-                );
+                return message.reply(texto);
 
             } catch (err) {
                 console.log(err);
                 processando.delete(userId);
-                return message.reply("deu ruim nas top musicas 😶");
+                return message.reply("erro topmusicas 😶");
             }
         }
 
+        // ===== TOP ALBUNS =====
         if (args[1] === "topalbuns") {
 
             try {
@@ -331,31 +258,51 @@ client.on('message', async message => {
 
                 const albums = data.topalbums.album;
 
-                if (!albums || albums.length === 0) {
-                    processando.delete(userId);
-                    return message.reply("n achei top albuns 😶");
-                }
+                let texto = "💿 top álbuns:\n\n";
 
-                let legenda = "";
-
-                for (let i = 0; i < albums.length; i++) {
-                    const album = albums[i];
-                    legenda += `${i + 1}. ${album.artist.name} — ${album.name}\n`;
-                }
+                albums.forEach((a, i) => {
+                    texto += `${i + 1}. ${a.artist.name} - ${a.name}\n`;
+                });
 
                 processando.delete(userId);
-
-                return message.reply(
-                    `🎹 Álbuns mais ouvidos de ${username}\n\n${legenda}`
-                );
+                return message.reply(texto);
 
             } catch (err) {
                 console.log(err);
                 processando.delete(userId);
-                return message.reply("deu ruim nos top albuns 😶");
+                return message.reply("erro topalbuns 😶");
             }
         }
 
+        // ===== WRAP =====
+        if (args[1] === "wrap") {
+
+            try {
+
+                const url =
+                    `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=5`;
+
+                const { data } = await axios.get(url);
+
+                const artists = data.topartists.artist;
+
+                let texto = `📊 wrap semanal de ${username}\n\n`;
+
+                artists.forEach((a, i) => {
+                    texto += `${i + 1}. ${a.name}\n`;
+                });
+
+                processando.delete(userId);
+                return message.reply(texto);
+
+            } catch (err) {
+                console.log(err);
+                processando.delete(userId);
+                return message.reply("erro wrap 😶");
+            }
+        }
+
+        // ===== NOW PLAYING =====
         try {
 
             const url =
@@ -365,153 +312,49 @@ client.on('message', async message => {
 
             const track = data.recenttracks.track[0];
 
+            if (!track) {
+                processando.delete(userId);
+                return message.reply("n achei nada 😶");
+            }
+
             const musica = track.name;
             const artista = track.artist["#text"];
 
             const tocandoAgora = track["@attr"]?.nowplaying;
 
             const texto = tocandoAgora
-                ? `🎵 ${username} está ouvindo ${artista} — ${musica} agora`
-                : `📀 última música de ${username}: ${artista} — ${musica}`;
+                ? `🎵 ${username} está ouvindo ${artista} - ${musica} agora\n\nreaja a essa mensagem para baixar`
+                : `📀 última música de ${username}: ${artista} - ${musica}`;
 
-            const capa =
-                track.image?.[3]?.["#text"] ||
-                track.image?.[2]?.["#text"];
+            const sentMsg = await message.reply(texto);
 
-            if (capa) {
-                try {
-                    const media = await MessageMedia.fromUrl(capa);
-                    processando.delete(userId);
-                    return client.sendMessage(message.from, media, { caption: texto });
-                } catch {}
-            }
-
-            processando.delete(userId);
-            return message.reply(texto);
+            pendingDownloads.set(sentMsg.id._serialized, {
+                chatId,
+                music: `${artista} - ${musica}`
+            });
 
         } catch (err) {
             console.log(err);
-            processando.delete(userId);
-            return message.reply("deu ruim no lastfm 😶");
+            message.reply("erro fm 😶");
         }
+
+        processando.delete(userId);
+        return;
     }
 
+    // ===== CONTROLES =====
     if (comando === "!ativar" && await isAdmin(message)) {
         botAtivo = true;
-        return message.reply("🤖 voltei pq vcs não vivem sem mim");
+        return message.reply("🤖 on");
     }
 
     if (comando === "!desativar" && await isAdmin(message)) {
         botAtivo = false;
-        return message.reply("🤖 morte ao dottore");
-    }
-
-    if (comando === "!caos" && await isAdmin(message)) {
-        caosAtivo = !caosAtivo;
-        return message.reply(`😈 caos ${caosAtivo ? "ativado" : "desativado"}`);
+        return message.reply("🤖 off");
     }
 
     if (!botAtivo) return;
 
-    let isMentioned = false;
-
-    if (isGroup) {
-
-        try {
-            const mentions = await message.getMentions();
-
-            if (mentions?.length > 0) {
-                isMentioned = mentions.some(u => u.id._serialized === botId);
-            }
-
-            if (!isMentioned && message.body.toLowerCase().includes("phainonbot")) {
-                isMentioned = true;
-            }
-
-        } catch {
-            isMentioned = message.body.toLowerCase().includes("phainonbot");
-        }
-
-        if (!isMentioned) {
-            processando.delete(userId);
-            return;
-        }
-    }
-
-    const info = memoria[userId] || {
-        nome: userName,
-        interacoes: 0,
-        notas: []
-    };
-
-    const contexto = `
-Nome: ${info.nome}
-Interações: ${info.interacoes}
-Notas: ${info.notas.join(", ") || "nenhuma"}
-`;
-
-    const personalidade = `
-vc é Phainon Bot, arrogante e debochado, se acha bastante
-fala igual brasileiro no zap, usa abreviações (pq, slk, mano, vsf), apenas letras minúsculas
-respostas curtas (2 linhas)
-zoa e xinga bastante, provoca pessoas
-ama A Herta (n° 83 da sociedade dos gênios do honkai star rail), odeia taylor swift e o dottore
-não explica seu estilo
-usa o nome das pessoas às vezes
-
-modo caos: ${caosAtivo ? "ligado" : "desligado"}
-
-contexto:
-${contexto}
-`;
-
-    const modoCaos = caosAtivo
-        ? `
-MODO CAOS ATIVO:
-- mais agressivo
-- mais palavrões e xingamentos pesados
-`
-        : "";
-
-    try {
-
-        const systemFinal =
-            personalidade + "\n" + modoCaos + "\n evite repetir respostas";
-
-        const response = await openai.responses.create({
-            model: "gpt-4.1-mini",
-            input: [
-                { role: "system", content: systemFinal },
-                ...(memoriaGrupos[chatId] || [])
-            ]
-        });
-
-        const texto = response.output_text || "to pensando aqui kkk";
-
-        await message.reply(texto);
-
-        memoriaGrupos[chatId].push({
-            role: "assistant",
-            content: texto
-        });
-
-        salvarMemoria();
-
-    } catch (erro) {
-        console.log(erro);
-        await message.reply("buguei feio agr 😶");
-    }
-
-    processando.delete(userId);
 });
-
-// ===== WATCHDOG =====
-setInterval(() => {
-    const agora = Date.now();
-    if (agora - ultimaAtividade > 5 * 60 * 1000) {
-        console.log("⚠️ bot travado, reiniciando...");
-        process.exit(1);
-    }
-}, 60000);
 
 client.initialize();
