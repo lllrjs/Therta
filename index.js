@@ -505,7 +505,9 @@ for (const a of data.topartists.artist) {
 
     if (img) imagens.push(img);
 }
-
+        
+const file = await gerarWrap(buffers);
+        
         if (imagens.length === 0) {
             return message.reply(txt);
         }
