@@ -600,9 +600,11 @@ if (comando === "!fm wrap") {
 // =========================
 if (comando === "!fm") {
     try {
+
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=1`;
 
         const { data } = await axios.get(url);
+
         const track = data.recenttracks.track[0];
 
         if (!track) {
@@ -612,14 +614,23 @@ if (comando === "!fm") {
         const musica = track.name;
         const artista = track.artist["#text"];
 
+        const ouvindoAgora =
+            track["@attr"]?.nowplaying === "true";
+
         const texto =
-`🎵 ${username} está ouvindo
+        ouvindoAgora
+        ? `🎵 ${username} está ouvindo
+${artista} — ${musica}
+
+Reaja a essa mensagem para baixar a música`
+        : `🎵 ${username} estava ouvindo
 ${artista} — ${musica}
 
 Reaja a essa mensagem para baixar a música`;
 
         // salva pra reação continuar funcionando
-        lastMusicMessage[message.id._serialized] = `${artista} - ${musica}`;
+        lastMusicMessage[message.id._serialized] =
+            `${artista} - ${musica}`;
 
         // pega capa do álbum
         const capa =
@@ -629,10 +640,13 @@ Reaja a essa mensagem para baixar a música`;
         // se tiver imagem, envia com foto
         if (capa) {
             try {
+
                 const media = await MessageMedia.fromUrl(capa);
+
                 return client.sendMessage(message.from, media, {
                     caption: texto
                 });
+
             } catch {
                 return message.reply(texto);
             }
