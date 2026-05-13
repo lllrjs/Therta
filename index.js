@@ -212,6 +212,40 @@ client.on('message', async message => {
                 txt += `${i+1}. ${t.artist["#text"]} - ${t.name}\n`;
             });
 
+            async function gerarColagem(buffers, output = "colagem.jpg") {
+    const size = 300;
+
+    const cols = Math.ceil(Math.sqrt(buffers.length));
+    const rows = Math.ceil(buffers.length / cols);
+
+    const base = sharp({
+        create: {
+            width: cols * size,
+            height: rows * size,
+            channels: 3,
+            background: "#111"
+        }
+    });
+
+    const layers = [];
+
+    for (let i = 0; i < buffers.length; i++) {
+        const img = await sharp(buffers[i])
+            .resize(size, size)
+            .toBuffer();
+
+        layers.push({
+            input: img,
+            left: (i % cols) * size,
+            top: Math.floor(i / cols) * size
+        });
+    }
+
+    await base.composite(layers).jpeg().toFile(output);
+
+    return output;
+            }
+
             return message.reply(txt);
 
         } catch {
