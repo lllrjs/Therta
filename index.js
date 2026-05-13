@@ -496,15 +496,26 @@ client.on('message', async message => {
         });
 
         // ===== COLAGEM DE IMAGENS =====
-        const imagens = [];
+const imagens = [];
 
-        for (const a of data.topartists.artist) {
-            const img =
-                a.image?.[3]?.["#text"] ||
-                a.image?.[2]?.["#text"];
+for (const a of data.topartists.artist) {
 
-            if (img) imagens.push(img);
-        }
+    try {
+
+        const artistUrl =
+`http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(a.name)}&api_key=${process.env.LASTFM_API_KEY}&format=json`;
+
+        const artistData = await axios.get(artistUrl);
+
+        const img =
+            artistData.data.artist?.image?.[4]?.["#text"] ||
+            artistData.data.artist?.image?.[3]?.["#text"] ||
+            artistData.data.artist?.image?.[2]?.["#text"];
+
+        if (img) imagens.push(img);
+
+    } catch {}
+}
 
         if (imagens.length === 0) {
             return message.reply(txt);
