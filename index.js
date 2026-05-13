@@ -257,26 +257,60 @@ client.on('message', async message => {
     // FM ALBUNS RECENTES
     // =========================
     if (comando.startsWith("!fm albunsrecentes")) {
-        try {
-            const qtd = parseInt(comando.split(" ")[2]) || 5;
+    try {
+        const qtd = parseInt(comando.split(" ")[2]) || 5;
 
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=${qtd}`;
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=${qtd}`;
 
-            const { data } = await axios.get(url);
+        const { data } = await axios.get(url);
 
-            const albums = data.topalbums.album;
+        const albums = data.topalbums.album;
 
-            let txt = "💿 albuns recentes:\n\n";
+        let txt = "💿 albuns recentes:\n\n";
 
-            albums.forEach((a, i) => {
-                txt += `${i+1}. ${a.artist.name} - ${a.name}\n`;
-            });
+        albums.forEach((a, i) => {
+            txt += `${i + 1}. ${a.artist.name} - ${a.name}\n`;
+        });
 
-            return message.reply(txt);
+        // ===== COLAGEM =====
+        const imagens = [];
 
-        } catch {
-            return message.reply("erro albuns 😶");
+        for (const a of albums) {
+            const img =
+                a.image?.[3]?.["#text"] ||
+                a.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
         }
+
+        if (imagens.length === 0) {
+            return message.reply(txt);
+        }
+
+        const buffers = [];
+
+        for (const url of imagens) {
+            try {
+                const res = await axios.get(url, { responseType: "arraybuffer" });
+                buffers.push(Buffer.from(res.data));
+            } catch {}
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch {
+        return message.reply("erro albuns 😶");
+    }
+    }
     }
 
     // =========================
