@@ -281,31 +281,72 @@ client.on('message', async message => {
     }
 
     // =========================
-    // FM RECENTES
-    // =========================
-    if (comando.startsWith("!fm recentes")) {
-        try {
-            const qtd = parseInt(comando.split(" ")[2]) || 5;
+// FM RECENTES
+// =========================
+if (comando.startsWith("!fm recentes")) {
+    try {
 
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=${qtd}`;
+        const qtd = parseInt(comando.split(" ")[2]) || 5;
 
-            const { data } = await axios.get(url);
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=${qtd}`;
 
-            const tracks = data.recenttracks.track;
+        const { data } = await axios.get(url);
 
-            let txt = "🎧 recentes:\n\n";
+        const tracks = data.recenttracks.track;
 
-            tracks.forEach((t, i) => {
-                txt += `${i+1}. ${t.artist["#text"]} - ${t.name}\n`;
-            });
+        let txt = "🎧 recentes:\n\n";
 
-            return message.reply(txt);
+        tracks.forEach((t, i) => {
+            txt += `${i + 1}. ${t.artist["#text"]} - ${t.name}\n`;
+        });
 
-        } catch {
-            return message.reply("erro recentes 😶");
+        // ===== IMAGENS =====
+        const imagens = [];
+
+        for (const t of tracks) {
+
+            const img =
+                t.image?.[3]?.["#text"] ||
+                t.image?.[2]?.["#text"];
+
+            if (img) imagens.push(img);
         }
-    }
 
+        if (imagens.length === 0) {
+            return message.reply(txt);
+        }
+
+        const buffers = [];
+
+        for (const url of imagens) {
+            try {
+
+                const res = await axios.get(url, {
+                    responseType: "arraybuffer"
+                });
+
+                buffers.push(Buffer.from(res.data));
+
+            } catch {}
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch (err) {
+        console.log(err);
+        return message.reply("erro recentes 😶");
+    }
+}
     // =========================
     // FM ALBUNS RECENTES
     // =========================
