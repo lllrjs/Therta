@@ -17,6 +17,9 @@ const client = new Client({
             "--disable-dev-shm-usage",
             "--no-first-run",
             "--disable-extensions"
+            "--disable-gpu",
+            "--single-process",
+            "--no-zygote",
         ]
     }
 });
