@@ -312,31 +312,56 @@ client.on('message', async message => {
     }
 
     // =========================
-    // FM ATUAL + REAÇÃO
-    // =========================
-    if (comando === "!fm") {
-        try {
-            const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=1`;
+// FM ATUAL + CAPA DO ÁLBUM
+// =========================
+if (comando === "!fm") {
+    try {
+        const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=1`;
 
-            const { data } = await axios.get(url);
-            const track = data.recenttracks.track[0];
+        const { data } = await axios.get(url);
+        const track = data.recenttracks.track[0];
 
-            const musica = track.name;
-            const artista = track.artist["#text"];
+        if (!track) {
+            return message.reply("n achei música atual 😶");
+        }
 
-            const texto =
-`🎵 ${username} está ouvindo ${artista} — ${musica} agora
+        const musica = track.name;
+        const artista = track.artist["#text"];
+
+        const texto =
+`🎵 ${username} está ouvindo
+${artista} — ${musica}
 
 Reaja a essa mensagem para baixar a música`;
 
-            lastMusicMessage[message.id._serialized] = `${artista} - ${musica}`;
+        // salva pra reação continuar funcionando
+        lastMusicMessage[message.id._serialized] = `${artista} - ${musica}`;
 
-            return message.reply(texto);
+        // pega capa do álbum
+        const capa =
+            track.image?.[3]?.["#text"] ||
+            track.image?.[2]?.["#text"];
 
-        } catch {
-            return message.reply("erro fm 😶");
+        // se tiver imagem, envia com foto
+        if (capa) {
+            try {
+                const media = await MessageMedia.fromUrl(capa);
+                return client.sendMessage(message.from, media, {
+                    caption: texto
+                });
+            } catch {
+                return message.reply(texto);
+            }
         }
+
+        // fallback sem imagem
+        return message.reply(texto);
+
+    } catch (err) {
+        console.log(err);
+        return message.reply("erro fm 😶");
     }
+}
 
     // ===== BOT SYSTEM =====
     if (!botAtivo) return;
