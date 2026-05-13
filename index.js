@@ -46,6 +46,52 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
     return output;
 }
 
+async function gerarWrap(buffers, output = "wrap.jpg") {
+
+    const size = 300;
+    const gap = 20;
+
+    const cols = Math.ceil(Math.sqrt(buffers.length));
+    const rows = Math.ceil(buffers.length / cols);
+
+    const width = cols * size + (cols - 1) * gap;
+    const height = rows * size + (rows - 1) * gap;
+
+    const base = sharp({
+        create: {
+            width,
+            height,
+            channels: 3,
+            background: "#1db954"
+        }
+    });
+
+    const layers = [];
+
+    for (let i = 0; i < buffers.length; i++) {
+
+        const img = await sharp(buffers[i])
+            .resize(size, size)
+            .jpeg()
+            .toBuffer();
+
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        layers.push({
+            input: img,
+            left: col * (size + gap),
+            top: row * (size + gap)
+        });
+    }
+
+    await base
+        .composite(layers)
+        .jpeg({ quality: 90 })
+        .toFile(output);
+
+    return output;
+}
 
 
 const client = new Client({
