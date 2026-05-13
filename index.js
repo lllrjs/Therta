@@ -300,37 +300,7 @@ client.on('message', async message => {
             });
 
             
-    const size = 300;
-
-    const cols = Math.ceil(Math.sqrt(buffers.length));
-    const rows = Math.ceil(buffers.length / cols);
-
-    const base = sharp({
-        create: {
-            width: cols * size,
-            height: rows * size,
-            channels: 3,
-            background: "#111"
-        }
-    });
-
-    const layers = [];
-
-    for (let i = 0; i < buffers.length; i++) {
-        const img = await sharp(buffers[i])
-            .resize(size, size)
-            .toBuffer();
-
-        layers.push({
-            input: img,
-            left: (i % cols) * size,
-            top: Math.floor(i / cols) * size
-        });
-    }
-
-    await base.composite(layers).jpeg().toFile(output);
-
-    return output;
+ return message.reply(txt);
             }
 
             return message.reply(txt);
