@@ -1,8 +1,11 @@
 require('dotenv').config();
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const OpenAI = require('openai');
 const fs = require('fs');
+const axios = require('axios');
+const sharp = require('sharp');
+const path = require('path');
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -33,13 +36,22 @@ let ultimaAtividade = Date.now();
 // ===== MEMÓRIA =====
 let memoria = {};
 let memoriaGrupos = {};
+let lastfmUsers = {};
 
 if (fs.existsSync('memoria.json')) {
     memoria = JSON.parse(fs.readFileSync('memoria.json'));
 }
 
+if (fs.existsSync('lastfm.json')) {
+    lastfmUsers = JSON.parse(fs.readFileSync('lastfm.json'));
+}
+
 function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
+}
+
+function salvarLastfm() {
+    fs.writeFileSync('lastfm.json', JSON.stringify(lastfmUsers, null, 2));
 }
 
 // ===== QR =====
@@ -67,6 +79,7 @@ client.on('auth_failure', msg => {
 // ===== ADMIN =====
 async function isAdmin(message) {
     const chat = await message.getChat();
+
     if (!chat.isGroup) return true;
 
     const contact = await message.getContact();
@@ -90,7 +103,9 @@ client.on('message', async message => {
     const userId = contact.id._serialized;
 
     if (processando.has(userId)) return;
+
     processando.add(userId);
+
     setTimeout(() => processando.delete(userId), 2000);
 
     const isGroup = message.from.endsWith('@g.us');
@@ -124,6 +139,309 @@ client.on('message', async message => {
     // ===== COMANDOS =====
     const comando = message.body.toLowerCase().trim();
 
+    // ===== LAST FM =====
+    if (comando.startsWith("!lf")) {
+
+        const args = comando.split(" ");
+
+        // ===== REGISTRAR =====
+        if (args[1] === "registrar") {
+
+            const username = args[2];
+
+            if (!username) {
+                processando.delete(userId);
+                return message.reply("usa: !lf registrar usuario");
+            }
+
+            lastfmUsers[userId] = username;
+
+            salvarLastfm();
+
+            processando.delete(userId);
+
+            return message.reply(`✅ lastfm registrado como ${username}`);
+        }
+
+        // ===== VERIFICAR REGISTRO =====
+        const username = lastfmUsers[userId];
+
+        if (!username) {
+
+            processando.delete(userId);
+
+            return message.reply(
+                "vc n registrou seu lastfm ainda 😶\nusa: !lf registrar usuario"
+            );
+        }
+
+        // ===== RECENTES =====
+        if (args[1] === "recentes") {
+
+            let quantidade = parseInt(args[2]) || 9;
+
+            if (quantidade > 16) quantidade = 16;
+            if (quantidade < 1) quantidade = 1;
+
+            try {
+
+                const url =
+                    `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=${quantidade}`;
+
+                const { data } = await axios.get(url);
+
+                const tracks = data.recenttracks.track;
+
+                if (!tracks || tracks.length === 0) {
+
+                    processando.delete(userId);
+
+                    return message.reply("n achei musicas recentes 😶");
+                }
+
+                const capas = [];
+                let legenda = "";
+
+                for (let i = 0; i < tracks.length; i++) {
+
+                    const track = tracks[i];
+
+                    const artista = track.artist["#text"];
+                    const album = track.album["#text"] || "sem album";
+
+                    legenda += `${i + 1}. ${artista} — ${album}\n`;
+
+                    const capa =
+                        track.image?.[3]?.["#text"] ||
+                        track.image?.[2]?.["#text"];
+
+                    if (capa) {
+
+                        try {
+
+                            const response = await axios.get(capa, {
+                                responseType: "arraybuffer"
+                            });
+
+                            capas.push(Buffer.from(response.data));
+
+                        } catch {}
+                    }
+                }
+
+                if (capas.length === 0) {
+
+                    processando.delete(userId);
+
+                    return message.reply(legenda);
+                }
+
+                const tamanho = 300;
+
+                const cols = Math.ceil(Math.sqrt(capas.length));
+                const rows = Math.ceil(capas.length / cols);
+
+                const canvas = sharp({
+                    create: {
+                        width: cols * tamanho,
+                        height: rows * tamanho,
+                        channels: 3,
+                        background: "#111"
+                    }
+                });
+
+                const composites = [];
+
+                for (let i = 0; i < capas.length; i++) {
+
+                    const img = await sharp(capas[i])
+                        .resize(tamanho, tamanho)
+                        .toBuffer();
+
+                    const x = (i % cols) * tamanho;
+                    const y = Math.floor(i / cols) * tamanho;
+
+                    composites.push({
+                        input: img,
+                        top: y,
+                        left: x
+                    });
+                }
+
+                const output = path.join(__dirname, "recentes.jpg");
+
+                await canvas
+                    .composite(composites)
+                    .jpeg()
+                    .toFile(output);
+
+                const media = MessageMedia.fromFilePath(output);
+
+                processando.delete(userId);
+
+                return client.sendMessage(message.from, media, {
+                    caption: `💿 Últimos álbuns de ${username}\n\n${legenda}`
+                });
+
+            } catch (err) {
+
+                console.log(err);
+
+                processando.delete(userId);
+
+                return message.reply("deu ruim pegando recentes 😶");
+            }
+        }
+
+        // ===== TOP MUSICAS =====
+        if (args[1] === "topmusicas") {
+
+            try {
+
+                const url =
+                    `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=9`;
+
+                const { data } = await axios.get(url);
+
+                const tracks = data.toptracks.track;
+
+                if (!tracks || tracks.length === 0) {
+
+                    processando.delete(userId);
+
+                    return message.reply("n achei top musicas 😶");
+                }
+
+                let legenda = "";
+
+                for (let i = 0; i < tracks.length; i++) {
+
+                    const track = tracks[i];
+
+                    legenda +=
+                        `${i + 1}. ${track.artist.name} — ${track.name}\n`;
+                }
+
+                processando.delete(userId);
+
+                return message.reply(
+                    `🎶 Músicas mais escutadas de ${username}\n\n${legenda}`
+                );
+
+            } catch (err) {
+
+                console.log(err);
+
+                processando.delete(userId);
+
+                return message.reply("deu ruim nas top musicas 😶");
+            }
+        }
+
+        // ===== TOP ALBUNS =====
+        if (args[1] === "topalbuns") {
+
+            try {
+
+                const url =
+                    `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=9`;
+
+                const { data } = await axios.get(url);
+
+                const albums = data.topalbums.album;
+
+                if (!albums || albums.length === 0) {
+
+                    processando.delete(userId);
+
+                    return message.reply("n achei top albuns 😶");
+                }
+
+                let legenda = "";
+
+                for (let i = 0; i < albums.length; i++) {
+
+                    const album = albums[i];
+
+                    legenda +=
+                        `${i + 1}. ${album.artist.name} — ${album.name}\n`;
+                }
+
+                processando.delete(userId);
+
+                return message.reply(
+                    `🎹 Álbuns mais ouvidos de ${username}\n\n${legenda}`
+                );
+
+            } catch (err) {
+
+                console.log(err);
+
+                processando.delete(userId);
+
+                return message.reply("deu ruim nos top albuns 😶");
+            }
+        }
+
+        // ===== MUSICA ATUAL =====
+        try {
+
+            const url =
+                `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=1`;
+
+            const { data } = await axios.get(url);
+
+            const track = data.recenttracks.track[0];
+
+            if (!track) {
+
+                processando.delete(userId);
+
+                return message.reply("n achei nada 😶");
+            }
+
+            const musica = track.name;
+            const artista = track.artist["#text"];
+
+            const tocandoAgora = track["@attr"]?.nowplaying;
+
+            const texto = tocandoAgora
+                ? `🎵 ${username} está ouvindo ${artista} — ${musica} agora`
+                : `📀 última música de ${username}: ${artista} — ${musica}`;
+
+            const capa =
+                track.image?.[3]?.["#text"] ||
+                track.image?.[2]?.["#text"];
+
+            if (capa) {
+
+                try {
+
+                    const media = await MessageMedia.fromUrl(capa);
+
+                    processando.delete(userId);
+
+                    return client.sendMessage(message.from, media, {
+                        caption: texto
+                    });
+
+                } catch {}
+            }
+
+            processando.delete(userId);
+
+            return message.reply(texto);
+
+        } catch (err) {
+
+            console.log(err);
+
+            processando.delete(userId);
+
+            return message.reply("deu ruim no lastfm 😶");
+        }
+    }
+
     if (comando === "!ativar" && await isAdmin(message)) {
         botAtivo = true;
         return message.reply("🤖 voltei pq vcs não vivem sem mim");
@@ -145,17 +463,28 @@ client.on('message', async message => {
     let isMentioned = false;
 
     if (isGroup) {
+
         try {
+
             const mentions = await message.getMentions();
+
             if (mentions?.length > 0) {
-                isMentioned = mentions.some(u => u.id._serialized === botId);
+                isMentioned = mentions.some(
+                    u => u.id._serialized === botId
+                );
             }
 
-            if (!isMentioned && message.body.toLowerCase().includes("phainonbot")) {
+            if (
+                !isMentioned &&
+                message.body.toLowerCase().includes("phainonbot")
+            ) {
                 isMentioned = true;
             }
+
         } catch {
-            isMentioned = message.body.toLowerCase().includes("phainonbot");
+
+            isMentioned =
+                message.body.toLowerCase().includes("phainonbot");
         }
 
         if (!isMentioned) {
@@ -201,6 +530,7 @@ MODO CAOS ATIVO:
         : "";
 
     try {
+
         const systemFinal =
             personalidade +
             "\n" +
@@ -211,11 +541,12 @@ MODO CAOS ATIVO:
             model: "gpt-4.1-mini",
             input: [
                 { role: "system", content: systemFinal },
-                ...(memoriaGrupos[chatId] || []),
+                ...(memoriaGrupos[chatId] || [])
             ]
         });
 
-        const texto = response.output_text || "to pensando aqui kkk";
+        const texto =
+            response.output_text || "to pensando aqui kkk";
 
         await message.reply(texto);
 
@@ -225,14 +556,20 @@ MODO CAOS ATIVO:
         });
 
         if (Math.random() < 0.2) {
+
             info.notas.push(message.body.slice(0, 30));
-            if (info.notas.length > 10) info.notas.shift();
+
+            if (info.notas.length > 10) {
+                info.notas.shift();
+            }
         }
 
         salvarMemoria();
 
     } catch (erro) {
+
         console.log(erro);
+
         await message.reply("buguei feio agr 😶");
     }
 
@@ -241,10 +578,13 @@ MODO CAOS ATIVO:
 
 // ===== WATCHDOG =====
 setInterval(() => {
+
     const agora = Date.now();
 
     if (agora - ultimaAtividade > 5 * 60 * 1000) {
+
         console.log("⚠️ bot travado, reiniciando...");
+
         process.exit(1);
     }
 
