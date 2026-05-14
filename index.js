@@ -97,7 +97,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        browser: puppeteer,
         headless: true,
         args: [
             "--no-sandbox",
