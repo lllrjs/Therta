@@ -1,7 +1,8 @@
-import makeWASocket, {
+const {
+    default: makeWASocket,
     useMultiFileAuthState,
     DisconnectReason
-} from '@whiskeysockets/baileys';
+} = require('@whiskeysockets/baileys');
 
 import P from 'pino';
 import OpenAI from 'openai';
