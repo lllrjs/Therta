@@ -94,9 +94,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 }
 
 
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const puppeteer = require('puppeteer');
-
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
