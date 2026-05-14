@@ -98,16 +98,11 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        executablePath: "/usr/bin/chromium-browser",
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
-            "--no-first-run",
-            "--disable-extensions",
-            "--disable-gpu",
-            "--single-process",
-            "--no-zygote",
+            "--disable-gpu"
         ]
     }
 });
