@@ -98,6 +98,7 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
     headless: true,
+    executablePath: '/usr/bin/google-chrome'
     args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -106,7 +107,8 @@ const client = new Client({
         "--single-process",
         "--no-zygote"
     ]
-}
+   }
+});
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
