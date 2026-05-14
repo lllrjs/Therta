@@ -97,8 +97,8 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        headless: "new",
-        executablePath: '/usr/bin/chromium-browser',
+        headless: true,
+        executablePath: '/snap/bin/chromium',
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
