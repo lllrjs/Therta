@@ -97,16 +97,16 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        headless: "new",
-        executablePath: '/usr/bin/google-chrome',
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu"
-        ]
-    }
-});
+    headless: true,
+    args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+        "--no-zygote"
+    ]
+}
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
