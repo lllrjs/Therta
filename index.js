@@ -99,12 +99,12 @@ const client = new Client({
     puppeteer: {
         headless: true,
         executablePath: "/usr/bin/google-chrome",
+        browserRevision: undefined,
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
-            "--disable-software-rasterizer",
             "--headless=new"
         ]
     }
