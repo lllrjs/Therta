@@ -94,18 +94,19 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 }
 
 
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const puppeteer = require('puppeteer');
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        browser: puppeteer,
         headless: true,
-        executablePath: "/usr/bin/google-chrome",
-        browserRevision: undefined,
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--headless=new"
+            "--disable-gpu"
         ]
     }
 });
