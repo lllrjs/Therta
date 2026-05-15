@@ -48,8 +48,9 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    const size = 300;
-    const gap = 20;
+    const size = 240; // capas menores
+    const gap = 70;   // espaço maior entre capas
+    const radius = size / 2;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
     const rows = Math.ceil(buffers.length / cols);
@@ -57,73 +58,110 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const width = cols * size + (cols - 1) * gap;
     const height = rows * size + (rows - 1) * gap;
 
+    // ===== FUNDO VERDE =====
     const base = sharp({
         create: {
             width,
             height,
-            channels: 3,
+            channels: 4,
             background: "#1db954"
         }
     });
 
     const layers = [];
 
-     // ===== GLITTER =====
-for (let i = 0; i < 120; i++) {
+    // ===== GLITTER NO FUNDO =====
+    for (let i = 0; i < 140; i++) {
 
-    const sparkle = await sharp({
-        create: {
-            width: 12,
-            height: 12,
-            channels: 4,
-            background: {
-                r: 255,
-                g: 255,
-                b: 255,
-                alpha: Math.random() * 0.35
+        const sparkleSize = Math.floor(Math.random() * 10) + 4;
+
+        const sparkle = await sharp({
+            create: {
+                width: sparkleSize,
+                height: sparkleSize,
+                channels: 4,
+                background: {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                    alpha: Math.random() * 0.25
+                }
             }
-        }
-    })
-    .blur(4)
-    .png()
-    .toBuffer();
+        })
+        .blur(1.5)
+        .png()
+        .toBuffer();
 
-    let x, y;
-    let valido = false;
-
-    while (!valido) {
-
-        x = Math.floor(Math.random() * width);
-        y = Math.floor(Math.random() * height);
-
-        valido = true;
-
-        for (let j = 0; j < buffers.length; j++) {
-
-            const col = j % cols;
-            const row = Math.floor(j / cols);
-
-            const imgX = col * (size + gap);
-            const imgY = row * (size + gap);
-
-            // impede glitter em cima das capas
-            if (
-                x > imgX &&
-                x < imgX + size &&
-                y > imgY &&
-                y < imgY + size
-            ) {
-                valido = false;
-                break;
-            }
-        }
+        layers.push({
+            input: sparkle,
+            left: Math.floor(Math.random() * width),
+            top: Math.floor(Math.random() * height)
+        });
     }
 
-    layers.push({
-        input: sparkle,
-        left: x,
-        top: y
-    });
+    // ===== CAPAS CIRCULARES =====
+    for (let i = 0; i < buffers.length; i++) {
+
+        const circleSvg = `
+        <svg width="${size}" height="${size}">
+            <circle cx="${radius}" cy="${radius}" r="${radius}" fill="white"/>
+        </svg>`;
+
+        const img = await sharp(buffers[i])
+            .resize(size, size)
+            .composite([{
+                input: Buffer.from(circleSvg),
+                blend: "dest-in"
+            }])
+            .png()
+            .toBuffer();
+
+        // ===== GLOW =====
+        const glowSize = size + 30;
+
+        const glowSvg = `
+        <svg width="${glowSize}" height="${glowSize}">
+            <circle
+                cx="${glowSize / 2}"
+                cy="${glowSize / 2}"
+                r="${radius}"
+                fill="white"
+                fill-opacity="0.28"
+            />
+        </svg>`;
+
+        const glow = await sharp(Buffer.from(glowSvg))
+            .blur(18)
+            .png()
+            .toBuffer();
+
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        const x = col * (size + gap);
+        const y = row * (size + gap);
+
+        // glow atrás
+        layers.push({
+            input: glow,
+            left: x - 15,
+            top: y - 15
+        });
+
+        // capa circular
+        layers.push({
+            input: img,
+            left: x,
+            top: y
+        });
+    }
+
+    await base
+        .composite(layers)
+        .jpeg({ quality: 95 })
+        .toFile(output);
+
+    return output;
 }
 
     
