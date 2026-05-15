@@ -57,19 +57,13 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const width = cols * size + (cols - 1) * gap;
     const height = rows * size + (rows - 1) * gap;
 
-    const base = sharp({
-        create: {
-            width,
-            height,
-            channels: 4,
-            background: "#1db954"
-        }
-    });
+    const base = sharp("FundoWrap.png")
+    .resize(width, height);
 
     const layers = [];
 
     // ===== GLITTER =====
-for (let i = 0; i < 360; i++) {
+for (let i = 0; i < 500; i++) {
 
     const glowSize = 2 + Math.floor(Math.random() * 6);
 
