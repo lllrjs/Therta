@@ -69,9 +69,9 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const layers = [];
 
      // ===== GLITTER CIRCULAR =====
-for (let i = 0; i < 120; i++) {
+for (let i = 0; i < 350; i++) {
 
-    const size = 4 + Math.floor(Math.random() * 10);
+    const size = 2 + Math.floor(Math.random() * 5);
 
     const opacity = (0.2 + Math.random() * 0.5).toFixed(2);
 
