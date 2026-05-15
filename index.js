@@ -48,7 +48,7 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    const size = 340;
+    const size = 350;
     const gap = 30;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
@@ -69,7 +69,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const layers = [];
 
     // ===== GLITTER =====
-for (let i = 0; i < 260; i++) {
+for (let i = 0; i < 360; i++) {
 
     const glowSize = 2 + Math.floor(Math.random() * 6);
 
