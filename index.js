@@ -161,10 +161,29 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
         .jpeg({ quality: 95 })
         .toFile(output);
 
-    return output;
-}
+async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    
+    const size = 300;
+    const gap = 20;
+
+    const cols = Math.ceil(Math.sqrt(buffers.length));
+    const rows = Math.ceil(buffers.length / cols);
+
+    const width = cols * size + (cols - 1) * gap;
+    const height = rows * size + (rows - 1) * gap;
+
+    const base = sharp({
+        create: {
+            width,
+            height,
+            channels: 3,
+            background: "#1db954"
+        }
+    });
+
+    const layers = [];
+
+    // ===== CAPAS =====
     for (let i = 0; i < buffers.length; i++) {
 
         const img = await sharp(buffers[i])
@@ -181,6 +200,85 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
             top: row * (size + gap)
         });
     }
+
+    // ===== GLITTER APENAS NOS GAPS =====
+    for (let i = 0; i < 260; i++) {
+
+        const glowSize = 2 + Math.floor(Math.random() * 5);
+
+        const opacity = (0.15 + Math.random() * 0.4).toFixed(2);
+
+        const svg = `
+        <svg width="${glowSize * 4}" height="${glowSize * 4}" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <circle
+                cx="${glowSize * 2}"
+                cy="${glowSize * 2}"
+                r="${glowSize}"
+                fill="rgba(180,255,220,${opacity})"
+                filter="url(#glow)"
+            />
+        </svg>
+        `;
+
+        const sparkle = await sharp(Buffer.from(svg))
+            .png()
+            .toBuffer();
+
+        let x, y;
+        let valido = false;
+
+        while (!valido) {
+
+            x = Math.floor(Math.random() * width);
+            y = Math.floor(Math.random() * height);
+
+            valido = true;
+
+            for (let j = 0; j < buffers.length; j++) {
+
+                const col = j % cols;
+                const row = Math.floor(j / cols);
+
+                const imgX = col * (size + gap);
+                const imgY = row * (size + gap);
+
+                // impede glitter em cima das capas
+                if (
+                    x > imgX &&
+                    x < imgX + size &&
+                    y > imgY &&
+                    y < imgY + size
+                ) {
+                    valido = false;
+                    break;
+                }
+            }
+        }
+
+        layers.push({
+            input: sparkle,
+            left: x,
+            top: y
+        });
+    }
+
+    await base
+        .composite(layers)
+        .jpeg({ quality: 90 })
+        .toFile(output);
+
+    return output;
+}
 
     await base
         .composite(layers)
