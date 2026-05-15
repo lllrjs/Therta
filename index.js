@@ -164,21 +164,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     return output;
 }
 
-    await base
-        .composite(layers)
-        .jpeg({ quality: 90 })
-        .toFile(output);
-
-    return output;
-}
-
-    await base
-        .composite(layers)
-        .jpeg({ quality: 90 })
-        .toFile(output);
-
-    return output;
-}
+    
 
 
 const client = new Client({
