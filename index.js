@@ -47,7 +47,6 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 }
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
-async function gerarWrap(buffers, output = "wrap.jpg") {
 
     const size = 240;
     const gap = 50;
@@ -63,89 +62,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
             width,
             height,
             channels: 4,
-            background: "#1db954"
-        }
-    });
-
-    const layers = [];
-
-    // ===== GLITTER ENTRE AS CAPAS =====
-    for (let i = 0; i < 140; i++) {
-
-        const glowSize = Math.floor(Math.random() * 14) + 6;
-
-        const sparkle = await sharp({
-            create: {
-                width: glowSize,
-                height: glowSize,
-                channels: 4,
-                background: {
-                    r: 255,
-                    g: 255,
-                    b: 255,
-                    alpha: 0.9
-                }
-            }
-        })
-        .blur(4)
-        .png()
-        .toBuffer();
-
-        layers.push({
-            input: sparkle,
-            left: Math.floor(Math.random() * width),
-            top: Math.floor(Math.random() * height),
-            blend: 'screen'
-        });
-    }
-
-    // ===== CAPAS NORMAIS =====
-    for (let i = 0; i < buffers.length; i++) {
-
-        const img = await sharp(buffers[i])
-            .resize(size, size)
-            .jpeg()
-            .toBuffer();
-
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-
-        layers.push({
-            input: img,
-            left: col * (size + gap),
-            top: row * (size + gap)
-        });
-    }
-
-    await base
-        .composite(layers)
-        .jpeg({ quality: 95 })
-        .toFile(output);
-
-    return output;
-}
-
-    await base
-        .composite(layers)
-        .jpeg({ quality: 95 })
-        .toFile(output);
-
-async function gerarWrap(buffers, output = "wrap.jpg") {
-
-    const size = 300;
-    const gap = 20;
-
-    const cols = Math.ceil(Math.sqrt(buffers.length));
-    const rows = Math.ceil(buffers.length / cols);
-
-    const width = cols * size + (cols - 1) * gap;
-    const height = rows * size + (rows - 1) * gap;
-
-    const base = sharp({
-        create: {
-            width,
-            height,
-            channels: 3,
             background: "#1db954"
         }
     });
@@ -170,7 +86,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
         });
     }
 
-    // ===== GLITTER APENAS NOS GAPS =====
+    // ===== GLITTER NOS ESPAÇOS =====
     for (let i = 0; i < 260; i++) {
 
         const glowSize = 2 + Math.floor(Math.random() * 5);
@@ -181,9 +97,9 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
         <svg width="${glowSize * 4}" height="${glowSize * 4}" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <filter id="glow">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                    <feGaussianBlur stdDeviation="4" result="blur"/>
                     <feMerge>
-                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="blur"/>
                         <feMergeNode in="SourceGraphic"/>
                     </feMerge>
                 </filter>
@@ -193,7 +109,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
                 cx="${glowSize * 2}"
                 cy="${glowSize * 2}"
                 r="${glowSize}"
-                fill="rgba(180,255,220,${opacity})"
+                fill="rgba(255,255,255,${opacity})"
                 filter="url(#glow)"
             />
         </svg>
@@ -221,7 +137,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
                 const imgX = col * (size + gap);
                 const imgY = row * (size + gap);
 
-                // impede glitter em cima das capas
                 if (
                     x > imgX &&
                     x < imgX + size &&
@@ -240,6 +155,14 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
             top: y
         });
     }
+
+    await base
+        .composite(layers)
+        .jpeg({ quality: 95 })
+        .toFile(output);
+
+    return output;
+}
 
     await base
         .composite(layers)
