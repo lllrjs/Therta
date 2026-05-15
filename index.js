@@ -68,76 +68,63 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 
     const layers = [];
 
-     // ===== GLITTER CIRCULAR =====
-for (let i = 0; i < 350; i++) {
+     // ===== GLITTER =====
+for (let i = 0; i < 120; i++) {
 
-    const size = 2 + Math.floor(Math.random() * 5);
+    const sparkle = await sharp({
+        create: {
+            width: 12,
+            height: 12,
+            channels: 4,
+            background: {
+                r: 255,
+                g: 255,
+                b: 255,
+                alpha: Math.random() * 0.35
+            }
+        }
+    })
+    .blur(4)
+    .png()
+    .toBuffer();
 
-    const opacity = (0.2 + Math.random() * 0.5).toFixed(2);
+    let x, y;
+    let valido = false;
 
-    const svg = `
-    <svg width="${size * 4}" height="${size * 4}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <filter id="glow">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        </defs>
+    while (!valido) {
 
-        <circle
-            cx="${size * 2}"
-            cy="${size * 2}"
-            r="${size}"
-            fill="rgba(255,255,255,${opacity})"
-            filter="url(#glow)"
-        />
-    </svg>
-    `;
+        x = Math.floor(Math.random() * width);
+        y = Math.floor(Math.random() * height);
 
-    const sparkle = await sharp(Buffer.from(svg))
-        .png()
-        .toBuffer();
+        valido = true;
+
+        for (let j = 0; j < buffers.length; j++) {
+
+            const col = j % cols;
+            const row = Math.floor(j / cols);
+
+            const imgX = col * (size + gap);
+            const imgY = row * (size + gap);
+
+            // impede glitter em cima das capas
+            if (
+                x > imgX &&
+                x < imgX + size &&
+                y > imgY &&
+                y < imgY + size
+            ) {
+                valido = false;
+                break;
+            }
+        }
+    }
 
     layers.push({
         input: sparkle,
-        let x, y;
-let valido = false;
-
-while (!valido) {
-
-    x = Math.floor(Math.random() * width);
-    y = Math.floor(Math.random() * height);
-
-    valido = true;
-
-    for (let j = 0; j < buffers.length; j++) {
-
-        const col = j % cols;
-        const row = Math.floor(j / cols);
-
-        const imgX = col * (size + gap);
-        const imgY = row * (size + gap);
-
-        // verifica se caiu dentro da capa
-        if (
-            x > imgX &&
-            x < imgX + size &&
-            y > imgY &&
-            y < imgY + size
-        ) {
-            valido = false;
-            break;
-        }
-    }
+        left: x,
+        top: y
+    });
 }
-    layers.push({
-    input: sparkle,
-    left: x,
-    top: y
-});
 
     
     for (let i = 0; i < buffers.length; i++) {
