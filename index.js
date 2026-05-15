@@ -47,10 +47,10 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 }
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
+async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    const size = 240; // capas menores
-    const gap = 70;   // espaço maior entre capas
-    const radius = size / 2;
+    const size = 240;
+    const gap = 50;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
     const rows = Math.ceil(buffers.length / cols);
@@ -58,7 +58,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const width = cols * size + (cols - 1) * gap;
     const height = rows * size + (rows - 1) * gap;
 
-    // ===== FUNDO VERDE =====
     const base = sharp({
         create: {
             width,
@@ -70,91 +69,61 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 
     const layers = [];
 
-    // ===== GLITTER NO FUNDO =====
+    // ===== GLITTER ENTRE AS CAPAS =====
     for (let i = 0; i < 140; i++) {
 
-        const sparkleSize = Math.floor(Math.random() * 10) + 4;
+        const glowSize = Math.floor(Math.random() * 14) + 6;
 
         const sparkle = await sharp({
             create: {
-                width: sparkleSize,
-                height: sparkleSize,
+                width: glowSize,
+                height: glowSize,
                 channels: 4,
                 background: {
                     r: 255,
                     g: 255,
                     b: 255,
-                    alpha: Math.random() * 0.25
+                    alpha: 0.9
                 }
             }
         })
-        .blur(1.5)
+        .blur(4)
         .png()
         .toBuffer();
 
         layers.push({
             input: sparkle,
             left: Math.floor(Math.random() * width),
-            top: Math.floor(Math.random() * height)
+            top: Math.floor(Math.random() * height),
+            blend: 'screen'
         });
     }
 
-    // ===== CAPAS CIRCULARES =====
+    // ===== CAPAS NORMAIS =====
     for (let i = 0; i < buffers.length; i++) {
-
-        const circleSvg = `
-        <svg width="${size}" height="${size}">
-            <circle cx="${radius}" cy="${radius}" r="${radius}" fill="white"/>
-        </svg>`;
 
         const img = await sharp(buffers[i])
             .resize(size, size)
-            .composite([{
-                input: Buffer.from(circleSvg),
-                blend: "dest-in"
-            }])
-            .png()
-            .toBuffer();
-
-        // ===== GLOW =====
-        const glowSize = size + 30;
-
-        const glowSvg = `
-        <svg width="${glowSize}" height="${glowSize}">
-            <circle
-                cx="${glowSize / 2}"
-                cy="${glowSize / 2}"
-                r="${radius}"
-                fill="white"
-                fill-opacity="0.28"
-            />
-        </svg>`;
-
-        const glow = await sharp(Buffer.from(glowSvg))
-            .blur(18)
-            .png()
+            .jpeg()
             .toBuffer();
 
         const col = i % cols;
         const row = Math.floor(i / cols);
 
-        const x = col * (size + gap);
-        const y = row * (size + gap);
-
-        // glow atrás
-        layers.push({
-            input: glow,
-            left: x - 15,
-            top: y - 15
-        });
-
-        // capa circular
         layers.push({
             input: img,
-            left: x,
-            top: y
+            left: col * (size + gap),
+            top: row * (size + gap)
         });
     }
+
+    await base
+        .composite(layers)
+        .jpeg({ quality: 95 })
+        .toFile(output);
+
+    return output;
+}
 
     await base
         .composite(layers)
