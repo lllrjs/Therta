@@ -69,23 +69,38 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const layers = [];
 
     // ===== GLITTER =====
+for // ===== GLITTER CIRCULAR =====
 for (let i = 0; i < 120; i++) {
 
-    const sparkle = await sharp({
-        create: {
-            width: 3 + Math.floor(Math.random() * 12),
-            height: 3 + Math.floor(Math.random() * 12),
-            channels: 4,
-            background: {
-                r: 255,
-                g: 255,
-                b: 255,
-                alpha: Math.random() * 0.6
-            }
-        }
-    })
-    .png()
-    .toBuffer();
+    const size = 4 + Math.floor(Math.random() * 10);
+
+    const opacity = (0.2 + Math.random() * 0.5).toFixed(2);
+
+    const svg = `
+    <svg width="${size * 4}" height="${size * 4}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+
+        <circle
+            cx="${size * 2}"
+            cy="${size * 2}"
+            r="${size}"
+            fill="rgba(255,255,255,${opacity})"
+            filter="url(#glow)"
+        />
+    </svg>
+    `;
+
+    const sparkle = await sharp(Buffer.from(svg))
+        .png()
+        .toBuffer();
 
     layers.push({
         input: sparkle,
@@ -94,6 +109,7 @@ for (let i = 0; i < 120; i++) {
     });
 }
 
+    
     for (let i = 0; i < buffers.length; i++) {
 
         const img = await sharp(buffers[i])
