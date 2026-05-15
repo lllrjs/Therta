@@ -242,6 +242,7 @@ client.on('message', async message => {
 !fm registrar <user>
 !fm recentes <n>
 !fm albunsrecentes <n>
+!fm topartistas <n>
 !fm topmusicas
 !fm topalbuns
 !fm wrap
@@ -342,6 +343,74 @@ if (comando.startsWith("!fm recentes")) {
     } catch (err) {
         console.log(err);
         return message.reply("erro recentes 😶");
+    }
+}
+    // =========================
+// FM TOP ARTISTAS
+// =========================
+if (comando.startsWith("!fm topartistas")) {
+    try {
+
+        const qtd = parseInt(comando.split(" ")[2]) || 9;
+
+        const url =
+`http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=${qtd}`;
+
+        const { data } = await axios.get(url);
+
+        const artistas = data.topartists.artist;
+
+        let txt = "👑 top artistas:\n\n";
+
+        artistas.forEach((a, i) => {
+            txt += `${i + 1}. ${a.name}\n`;
+        });
+
+        // ===== PEGAR IMAGENS =====
+        const buffers = [];
+
+        for (const artista of artistas) {
+
+            try {
+
+                // busca infos do artista
+                const artistUrl =
+`http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artista.name)}&api_key=${process.env.LASTFM_API_KEY}&format=json`;
+
+                const res = await axios.get(artistUrl);
+
+                const img =
+                    res.data.artist?.image?.[4]?.["#text"] ||
+                    res.data.artist?.image?.[3]?.["#text"] ||
+                    res.data.artist?.image?.[2]?.["#text"];
+
+                if (!img) continue;
+
+                const imgRes = await axios.get(img, {
+                    responseType: "arraybuffer"
+                });
+
+                buffers.push(Buffer.from(imgRes.data));
+
+            } catch {}
+        }
+
+        // sem imagens
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
+        });
+
+    } catch (err) {
+        console.log(err);
+        return message.reply("erro top artistas 😶");
     }
 }
     // =========================
