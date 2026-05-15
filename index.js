@@ -68,25 +68,6 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 
     const layers = [];
 
-    // ===== CAPAS =====
-    for (let i = 0; i < buffers.length; i++) {
-
-        const img = await sharp(buffers[i])
-            .resize(size, size)
-            .jpeg()
-            .toBuffer();
-
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-
-        layers.push({
-            input: img,
-            left: col * (size + gap),
-            top: row * (size + gap)
-        });
-    }
-
-    // ===== GLITTER NOS ESPAÇOS =====
     // ===== GLITTER =====
 for (let i = 0; i < 140; i++) {
 
@@ -126,6 +107,26 @@ for (let i = 0; i < 140; i++) {
         top: Math.floor(Math.random() * height)
     });
 }
+
+    // ===== CAPAS =====
+    for (let i = 0; i < buffers.length; i++) {
+
+        const img = await sharp(buffers[i])
+            .resize(size, size)
+            .jpeg()
+            .toBuffer();
+
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        layers.push({
+            input: img,
+            left: col * (size + gap),
+            top: row * (size + gap)
+        });
+    }
+
+    
 await base
         .composite(layers)
         .jpeg({ quality: 95 })
