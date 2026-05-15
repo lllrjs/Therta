@@ -103,10 +103,41 @@ for (let i = 0; i < 350; i++) {
 
     layers.push({
         input: sparkle,
-        left: Math.floor(Math.random() * width),
-        top: Math.floor(Math.random() * height)
-    });
+        let x, y;
+let valido = false;
+
+while (!valido) {
+
+    x = Math.floor(Math.random() * width);
+    y = Math.floor(Math.random() * height);
+
+    valido = true;
+
+    for (let j = 0; j < buffers.length; j++) {
+
+        const col = j % cols;
+        const row = Math.floor(j / cols);
+
+        const imgX = col * (size + gap);
+        const imgY = row * (size + gap);
+
+        // verifica se caiu dentro da capa
+        if (
+            x > imgX &&
+            x < imgX + size &&
+            y > imgY &&
+            y < imgY + size
+        ) {
+            valido = false;
+            break;
+        }
+    }
 }
+    layers.push({
+    input: sparkle,
+    left: x,
+    top: y
+});
 
     
     for (let i = 0; i < buffers.length; i++) {
