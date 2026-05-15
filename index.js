@@ -73,8 +73,8 @@ for (let i = 0; i < 120; i++) {
 
     const sparkle = await sharp({
         create: {
-            width: 8,
-            height: 8,
+            width: 3 + Math.floor(Math.random() * 12),
+            height: 3 + Math.floor(Math.random() * 12),
             channels: 4,
             background: {
                 r: 255,
