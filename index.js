@@ -373,20 +373,25 @@ for (const artista of artistas) {
 
     try {
 
-        const img =
-            artista.image?.[4]?.["#text"] ||
-            artista.image?.[3]?.["#text"] ||
-            artista.image?.[2]?.["#text"];
+        const deezerUrl =
+`https://api.deezer.com/search/artist?q=${encodeURIComponent(artista.name)}`;
 
-        if (!img) continue;
+        const res = await axios.get(deezerUrl);
 
-        const imgRes = await axios.get(img, {
-            responseType: "arraybuffer"
-        });
+        const artistaData = res.data.data?.[0];
+
+        if (!artistaData?.picture_xl) continue;
+
+        const imgRes = await axios.get(
+            artistaData.picture_xl,
+            { responseType: "arraybuffer" }
+        );
 
         buffers.push(Buffer.from(imgRes.data));
 
-    } catch {}
+    } catch (err) {
+        console.log(err);
+    }
 }
 
         // sem imagens
