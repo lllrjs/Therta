@@ -69,7 +69,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     const layers = [];
 
     // ===== GLITTER =====
-for (let i = 0; i < 140; i++) {
+for (let i = 0; i < 260; i++) {
 
     const glowSize = 2 + Math.floor(Math.random() * 6);
 
