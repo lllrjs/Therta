@@ -48,8 +48,8 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    const size = 240;
-    const gap = 50;
+    const size = 280;
+    const gap = 55;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
     const rows = Math.ceil(buffers.length / cols);
@@ -137,12 +137,14 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
                 const imgX = col * (size + gap);
                 const imgY = row * (size + gap);
 
-                if (
-                    x > imgX &&
-                    x < imgX + size &&
-                    y > imgY &&
-                    y < imgY + size
-                ) {
+               const margem = 18;
+
+if (
+    x > imgX - margem &&
+    x < imgX + size + margem &&
+    y > imgY - margem &&
+    y < imgY + size + margem
+) {
                     valido = false;
                     break;
                 }
