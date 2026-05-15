@@ -48,8 +48,8 @@ async function gerarColagem(buffers, output = "colagem.jpg") {
 
 async function gerarWrap(buffers, output = "wrap.jpg") {
 
-    const size = 280;
-    const gap = 55;
+    const size = 300;
+    const gap = 40;
 
     const cols = Math.ceil(Math.sqrt(buffers.length));
     const rows = Math.ceil(buffers.length / cols);
