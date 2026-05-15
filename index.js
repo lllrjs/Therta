@@ -636,21 +636,37 @@ Reaja a essa mensagem para baixar a música`;
 
         // se tiver imagem, envia com foto
         if (capa) {
-            try {
+    try {
 
-                const media = await MessageMedia.fromUrl(capa);
+        const media = await MessageMedia.fromUrl(capa);
 
-                return client.sendMessage(message.from, media, {
-                    caption: texto
-                });
+        const sent = await client.sendMessage(message.from, media, {
+            caption: texto
+        });
 
-            } catch {
-                return message.reply(texto);
-            }
+        lastMusicMessage[sent.id._serialized] =
+            `${artista} - ${musica}`;
+
+        return;
+
+    } catch {
+
+        const sent = await message.reply(texto);
+
+        lastMusicMessage[sent.id._serialized] =
+            `${artista} - ${musica}`;
+
+        return;
+    }
         }
 
         // fallback sem imagem
-        return message.reply(texto);
+        const sent = await message.reply(texto);
+
+lastMusicMessage[sent.id._serialized] =
+    `${artista} - ${musica}`;
+
+return;
 
     } catch (err) {
         console.log(err);
