@@ -126,7 +126,13 @@ for (let i = 0; i < 140; i++) {
         top: Math.floor(Math.random() * height)
     });
 }
+await base
+        .composite(layers)
+        .jpeg({ quality: 95 })
+        .toFile(output);
 
+    return output;
+}
     
 
 
