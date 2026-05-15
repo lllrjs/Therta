@@ -367,33 +367,27 @@ if (comando.startsWith("!fm topartistas")) {
         });
 
         // ===== PEGAR IMAGENS =====
-        const buffers = [];
+const buffers = [];
 
-        for (const artista of artistas) {
+for (const artista of artistas) {
 
-            try {
+    try {
 
-                // busca infos do artista
-                const artistUrl =
-`http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artista.name)}&api_key=${process.env.LASTFM_API_KEY}&format=json`;
+        const img =
+            artista.image?.[4]?.["#text"] ||
+            artista.image?.[3]?.["#text"] ||
+            artista.image?.[2]?.["#text"];
 
-                const res = await axios.get(artistUrl);
+        if (!img) continue;
 
-                const img =
-                    res.data.artist?.image?.[4]?.["#text"] ||
-                    res.data.artist?.image?.[3]?.["#text"] ||
-                    res.data.artist?.image?.[2]?.["#text"];
+        const imgRes = await axios.get(img, {
+            responseType: "arraybuffer"
+        });
 
-                if (!img) continue;
+        buffers.push(Buffer.from(imgRes.data));
 
-                const imgRes = await axios.get(img, {
-                    responseType: "arraybuffer"
-                });
-
-                buffers.push(Buffer.from(imgRes.data));
-
-            } catch {}
-        }
+    } catch {}
+}
 
         // sem imagens
         if (buffers.length === 0) {
