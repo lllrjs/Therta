@@ -68,6 +68,32 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 
     const layers = [];
 
+    // ===== GLITTER =====
+for (let i = 0; i < 120; i++) {
+
+    const sparkle = await sharp({
+        create: {
+            width: 8,
+            height: 8,
+            channels: 4,
+            background: {
+                r: 255,
+                g: 255,
+                b: 255,
+                alpha: Math.random() * 0.6
+            }
+        }
+    })
+    .png()
+    .toBuffer();
+
+    layers.push({
+        input: sparkle,
+        left: Math.floor(Math.random() * width),
+        top: Math.floor(Math.random() * height)
+    });
+}
+
     for (let i = 0; i < buffers.length; i++) {
 
         const img = await sharp(buffers[i])
