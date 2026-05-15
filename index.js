@@ -87,7 +87,7 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
     }
 
     // ===== GLITTER NOS ESPAÇOS =====
-    for (let i = 0; i < 260; i++) {
+    for (let i = 0; i < 200; i++) {
 
         const glowSize = 2 + Math.floor(Math.random() * 5);
 
@@ -124,8 +124,15 @@ async function gerarWrap(buffers, output = "wrap.jpg") {
 
         while (!valido) {
 
-            x = Math.floor(Math.random() * width);
-            y = Math.floor(Math.random() * height);
+            x = Math.floor(
+    (Math.random() * width) +
+    (Math.random() - 0.5) * 35
+);
+
+y = Math.floor(
+    (Math.random() * height) +
+    (Math.random() - 0.5) * 35
+);
 
             valido = true;
 
