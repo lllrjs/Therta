@@ -280,7 +280,7 @@ client.on('message', async message => {
 !fm recentes <n>
 !fm albunsrecentes <n>
 !fm topartistas <n>
-!fm topmusicas
+!fm topmusicas <n>
 !fm topalbuns
 !fm wrap
 !fm help
@@ -517,9 +517,13 @@ for (const artista of artistas) {
     // =========================
 // FM TOP MUSICAS
 // =========================
-if (comando === "!fm topmusicas") {
+if (comando.startsWith("!fm topmusicas")) {
     try {
 
+const qtdInput = parseInt(comando.split(" ")[2]) || 10;
+
+const qtd = Math.min(qtdInput, 30);
+        
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=10`;
         const { data } = await axios.get(url);
 
