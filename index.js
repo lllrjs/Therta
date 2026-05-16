@@ -323,6 +323,8 @@ if (comando.startsWith("!fm recentes")) {
 
         const qtd = parseInt(comando.split(" ")[2]) || 5;
 
+        const qtd = Math.min(qtdInput, 300);
+
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=${qtd}`;
 
         const { data } = await axios.get(url);
@@ -390,6 +392,8 @@ if (comando.startsWith("!fm topartistas")) {
 
         const qtd = parseInt(comando.split(" ")[2]) || 9;
 
+        const qtd = Math.min(qtdInput, 300);
+
         const url =
 `http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=${qtd}`;
 
@@ -455,6 +459,8 @@ for (const artista of artistas) {
     if (comando.startsWith("!fm albunsrecentes")) {
     try {
         const qtd = parseInt(comando.split(" ")[2]) || 5;
+
+        const qtd = Math.min(qtdInput, 300);
 
         const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=7day&limit=${qtd}`;
 
