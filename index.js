@@ -520,50 +520,70 @@ for (const artista of artistas) {
 if (comando.startsWith("!fm topmusicas")) {
     try {
 
-const qtdInput = parseInt(comando.split(" ")[2]) || 10;
+        const qtdInput = parseInt(comando.split(" ")[2]) || 10;
 
-const qtd = Math.min(qtdInput, 300);
-        
-        const url = `http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=${qtd}`;
+        const qtd = Math.min(qtdInput, 300);
+
+        const url =
+`http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&period=1month&limit=${qtd}`;
+
         const { data } = await axios.get(url);
 
-        let txt = "🔥 top musicas:\n\n";
-
         const tracks = data.toptracks.track;
+
+        let txt = "🔥 top musicas:\n\n";
 
         tracks.forEach((t, i) => {
             txt += `${i + 1}. ${t.artist.name} - ${t.name}\n`;
         });
 
-        // ===== COLAGEM =====
-const buffers = [];
+        // ===== PEGAR CAPAS DOS ÁLBUNS =====
+        const buffers = [];
 
-for (const t of tracks) {
+        for (const t of tracks) {
 
-    try {
+            try {
 
-        const artist = t.artist.name;
-        const music = t.name;
+                const artist = t.artist.name;
+                const music = t.name;
 
-        const searchUrl =
+                const searchUrl =
 `https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${process.env.LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(music)}&format=json`;
 
-        const res = await axios.get(searchUrl);
+                const res = await axios.get(searchUrl);
 
-        const albumImg =
-            res.data.track?.album?.image?.[3]?.["#text"] ||
-            res.data.track?.album?.image?.[2]?.["#text"];
+                const albumImg =
+                    res.data.track?.album?.image?.[3]?.["#text"] ||
+                    res.data.track?.album?.image?.[2]?.["#text"];
 
-        if (!albumImg) continue;
+                if (!albumImg) continue;
 
-        const imgRes = await axios.get(albumImg, {
-            responseType: "arraybuffer"
+                const imgRes = await axios.get(albumImg, {
+                    responseType: "arraybuffer"
+                });
+
+                buffers.push(Buffer.from(imgRes.data));
+
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
+        if (buffers.length === 0) {
+            return message.reply(txt);
+        }
+
+        const file = await gerarColagem(buffers);
+
+        const media = MessageMedia.fromFilePath(file);
+
+        return client.sendMessage(chatId, media, {
+            caption: txt
         });
-
-        buffers.push(Buffer.from(imgRes.data));
 
     } catch (err) {
         console.log(err);
+        return message.reply("erro top musicas 😶");
     }
 }
 
