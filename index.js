@@ -536,50 +536,34 @@ const qtd = Math.min(qtdInput, 300);
         });
 
         // ===== COLAGEM =====
-        const imagens = [];
+const buffers = [];
 
-        for (const t of tracks) {
+for (const t of tracks) {
 
-            const img =
-                t.image?.[3]?.["#text"] ||
-                t.image?.[2]?.["#text"];
+    try {
 
-            if (img) imagens.push(img);
-        }
+        const artist = t.artist.name;
+        const music = t.name;
 
-        if (imagens.length === 0) {
-            return message.reply(txt);
-        }
+        const searchUrl =
+`https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${process.env.LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(music)}&format=json`;
 
-        const buffers = [];
+        const res = await axios.get(searchUrl);
 
-        for (const url of imagens) {
-            try {
+        const albumImg =
+            res.data.track?.album?.image?.[3]?.["#text"] ||
+            res.data.track?.album?.image?.[2]?.["#text"];
 
-                const res = await axios.get(url, {
-                    responseType: "arraybuffer"
-                });
+        if (!albumImg) continue;
 
-                buffers.push(Buffer.from(res.data));
-
-            } catch {}
-        }
-
-        if (buffers.length === 0) {
-            return message.reply(txt);
-        }
-
-        const file = await gerarColagem(buffers);
-
-        const media = MessageMedia.fromFilePath(file);
-
-        return client.sendMessage(chatId, media, {
-            caption: txt
+        const imgRes = await axios.get(albumImg, {
+            responseType: "arraybuffer"
         });
+
+        buffers.push(Buffer.from(imgRes.data));
 
     } catch (err) {
         console.log(err);
-        return message.reply("erro top 😶");
     }
 }
 
