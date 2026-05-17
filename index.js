@@ -805,14 +805,39 @@ if (comando === "!fm streak") {
             return message.reply("n achei streak 😶");
         }
 
-        return message.reply(
-`🔥 *sequência atual*
+        const texto =
+`🔥 *Sequência atual*
 
 👤 ${melhorArtista}
 
 📆 ${maiorStreak} dias consecutivos ouvindo
-▶️ ${playsStreak} plays durante a sequência`
-        );
+▶️ ${playsStreak} plays durante a sequência`;
+
+try {
+
+    const deezerUrl =
+`https://api.deezer.com/search/artist?q=${encodeURIComponent(melhorArtista)}`;
+
+    const res = await axios.get(deezerUrl);
+
+    const artistaData = res.data.data?.[0];
+
+    if (!artistaData?.picture_xl) {
+        return message.reply(texto);
+    }
+
+    const media = await MessageMedia.fromUrl(
+        artistaData.picture_xl
+    );
+
+    return client.sendMessage(chatId, media, {
+        caption: texto
+    });
+
+} catch {
+
+    return message.reply(texto);
+}
 
     } catch (err) {
 
