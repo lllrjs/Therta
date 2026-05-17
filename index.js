@@ -283,6 +283,7 @@ client.on('message', async message => {
 !fm topmusicas <n>
 !fm topalbuns
 !fm wrap
+!fm streak
 !fm help
 
 💡 dica: !fm sem comando mostra a música atual`
@@ -718,6 +719,109 @@ if (comando === "!fm wrap") {
     }
 }
 
+// =========================
+// FM STREAK
+// =========================
+if (comando === "!fm streak") {
+
+    try {
+
+        const from = Math.floor(
+            new Date(
+                Date.now() - 30 * 24 * 60 * 60 * 1000
+            ).getTime() / 1000
+        );
+
+        const url =
+`http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${process.env.LASTFM_API_KEY}&format=json&limit=200&from=${from}`;
+
+        const { data } = await axios.get(url);
+
+        const tracks = data.recenttracks.track;
+
+        const diasPorArtista = {};
+        const playsPorArtista = {};
+
+        for (const t of tracks) {
+
+            if (!t.date?.uts) continue;
+
+            const artista = t.artist["#text"];
+
+            const dia = new Date(
+                parseInt(t.date.uts) * 1000
+            ).toISOString().slice(0, 10);
+
+            if (!diasPorArtista[artista]) {
+                diasPorArtista[artista] = new Set();
+                playsPorArtista[artista] = 0;
+            }
+
+            diasPorArtista[artista].add(dia);
+            playsPorArtista[artista]++;
+        }
+
+        let melhorArtista = null;
+        let maiorStreak = 0;
+        let playsStreak = 0;
+
+        for (const artista in diasPorArtista) {
+
+            const dias = [...diasPorArtista[artista]]
+                .sort();
+
+            let streakAtual = 1;
+            let maiorAtual = 1;
+
+            for (let i = 1; i < dias.length; i++) {
+
+                const anterior = new Date(dias[i - 1]);
+                const atual = new Date(dias[i]);
+
+                const diff =
+                    (atual - anterior) /
+                    (1000 * 60 * 60 * 24);
+
+                if (diff === 1) {
+                    streakAtual++;
+                } else {
+                    streakAtual = 1;
+                }
+
+                if (streakAtual > maiorAtual) {
+                    maiorAtual = streakAtual;
+                }
+            }
+
+            if (maiorAtual > maiorStreak) {
+
+                maiorStreak = maiorAtual;
+                melhorArtista = artista;
+                playsStreak = playsPorArtista[artista];
+            }
+        }
+
+        if (!melhorArtista) {
+            return message.reply("n achei streak 😶");
+        }
+
+        return message.reply(
+`🔥 *sequência atual*
+
+👤 ${melhorArtista}
+
+📆 ${maiorStreak} dias consecutivos ouvindo
+▶️ ${playsStreak} plays durante a sequência`
+        );
+
+    } catch (err) {
+
+        console.log(err);
+
+        return message.reply("erro streak 😶");
+    }
+}
+    
     // =========================
 // FM ATUAL + CAPA DO ÁLBUM
 // =========================
