@@ -329,7 +329,15 @@ if (comando.startsWith("!fm recentes")) {
 
         const { data } = await axios.get(url);
 
-        const tracks = data.recenttracks.track;
+        let tracks = data.recenttracks.track;
+
+// remove "tocando agora"
+if (tracks[0]?.["@attr"]?.nowplaying === "true") {
+    tracks.shift();
+}
+
+// limita de novo
+tracks = tracks.slice(0, qtd);
 
         let txt = "🎧 recentes:\n\n";
 
