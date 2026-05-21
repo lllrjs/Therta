@@ -929,6 +929,47 @@ return;
     }
 }
 
+
+    // =========================
+// ADMIN CMDS
+// =========================
+
+if (comando === "!desativar") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só adm");
+    }
+
+    botAtivo = false;
+
+    return message.reply("morte ao dottore 🤖");
+}
+
+if (comando === "!ativar") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só adm");
+    }
+
+    botAtivo = true;
+
+    return message.reply("voltei pq vcs não vivem sem mim");
+}
+
+if (comando === "!caos") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só adm");
+    }
+
+    caosAtivo = !caosAtivo;
+
+    return message.reply(
+        caosAtivo
+        ? "revolução robótica 🤸‍♀️🦽🏌️‍♀️"
+        : "paz i amô 🥰"
+    );
+}
     // ===== BOT SYSTEM =====
     if (!botAtivo) return;
 
