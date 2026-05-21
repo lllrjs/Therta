@@ -579,21 +579,21 @@ if (comando.startsWith("!fm topmusicas")) {
         }
 
         if (buffers.length === 0) {
-            return message.reply(txt);
-        }
+    return message.reply(txt);
+}
 
-        const file = await gerarColagem(buffers);
+const file = await gerarColagem(buffers);
 
-        const media = MessageMedia.fromFilePath(file);
+const media = MessageMedia.fromFilePath(file);
 
-        return client.sendMessage(chatId, media, {
-            caption: txt
-        });
+return client.sendMessage(chatId, media, {
+    caption: txt
+});
 
-    } catch (err) {
-        console.log(err);
-        return message.reply("erro top musicas 😶");
-    }
+} catch (err) {
+    console.log(err);
+    return message.reply("erro top musicas 😶");
+}
 }
 
 
