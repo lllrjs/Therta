@@ -565,7 +565,23 @@ if (comando.startsWith("!fm topmusicas")) {
                     res.data.track?.album?.image?.[3]?.["#text"] ||
                     res.data.track?.album?.image?.[2]?.["#text"];
 
-                if (!albumImg) continue;
+                if (!albumImg) {
+
+    const fallback = await sharp({
+        create: {
+            width: 300,
+            height: 300,
+            channels: 3,
+            background: "#111"
+        }
+    })
+    .png()
+    .toBuffer();
+
+    buffers.push(fallback);
+
+    continue;
+                }
 
                 const imgRes = await axios.get(albumImg, {
                     responseType: "arraybuffer"
