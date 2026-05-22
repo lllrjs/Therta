@@ -952,6 +952,292 @@ return;
 
 
     // =========================
+// TERMO CONFIG
+// =========================
+
+let termoAtivo = true;
+
+let jogosTermo = {};
+
+// =========================
+// PEGAR PALAVRA
+// =========================
+
+async function pegarPalavraAleatoria() {
+
+    while (true) {
+
+        try {
+
+            const res = await axios.get(
+                "https://api.dicionario-aberto.net/random"
+            );
+
+            let palavra = res.data.word
+                ?.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^A-Z]/gi, "")
+                .toUpperCase();
+
+            if (
+                palavra &&
+                palavra.length === 5
+            ) {
+                return palavra;
+            }
+
+        } catch {}
+    }
+}
+
+// =========================
+// TERMO ON
+// =========================
+
+if (comando === "!termoon") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só admin 😶");
+    }
+
+    termoAtivo = true;
+
+    return message.reply(
+        "✅ termo ativado"
+    );
+}
+
+// =========================
+// TERMO OFF
+// =========================
+
+if (comando === "!termooff") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só admin 😶");
+    }
+
+    termoAtivo = false;
+
+    return message.reply(
+        "🚫 termo desativado"
+    );
+}
+
+// =========================
+// INICIAR TERMO
+// =========================
+
+if (comando === "!termo") {
+
+    if (!termoAtivo) {
+
+        return message.reply(
+            "o termo tá desativado 😶"
+        );
+    }
+
+    if (jogosTermo[chatId]) {
+
+        return message.reply(
+            "já existe uma partida acontecendo 😶"
+        );
+    }
+
+    const palavra =
+        await pegarPalavraAleatoria();
+
+    jogosTermo[chatId] = {
+        dono: userId,
+        palavra,
+        tentativas: [],
+        acabou: false
+    };
+
+    return message.reply(
+`🎮 termo iniciado
+
+mande uma palavra de 5 letras`
+    );
+}
+
+// =========================
+// PARAR TERMO
+// =========================
+
+if (comando === "!parar") {
+
+    const jogo = jogosTermo[chatId];
+
+    if (!jogo) {
+
+        return message.reply(
+            "não tem jogo acontecendo 😶"
+        );
+    }
+
+    const admin = await isAdmin(message);
+
+    if (
+        jogo.dono !== userId &&
+        !admin
+    ) {
+
+        return message.reply(
+            "só quem criou ou admin pode parar 😶"
+        );
+    }
+
+    delete jogosTermo[chatId];
+
+    return message.reply(
+        "🛑 partida encerrada"
+    );
+}
+
+// =========================
+// SISTEMA TERMO
+// =========================
+
+if (
+    jogosTermo[chatId] &&
+    !comando.startsWith("!")
+) {
+
+    const jogo = jogosTermo[chatId];
+
+    // só dono joga
+    if (jogo.dono !== userId) {
+        return;
+    }
+
+    if (jogo.acabou) {
+
+        delete jogosTermo[chatId];
+
+        return;
+    }
+
+    let tentativa = message.body
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Z]/gi, "")
+        .toUpperCase();
+
+    // tamanho
+    if (tentativa.length !== 5) {
+
+        return message.reply(
+            "a palavra precisa ter 5 letras 😶"
+        );
+    }
+
+    const palavra = jogo.palavra;
+
+    let resultado = Array(5).fill(null);
+
+    let restantes = palavra.split("");
+
+    // =========================
+    // LETRAS CORRETAS
+    // =========================
+
+    for (let i = 0; i < 5; i++) {
+
+        if (tentativa[i] === palavra[i]) {
+
+            resultado[i] =
+                `*${tentativa[i]}*`;
+
+            restantes[i] = null;
+        }
+    }
+
+    // =========================
+    // LETRAS FORA DO LUGAR
+    // =========================
+
+    for (let i = 0; i < 5; i++) {
+
+        if (resultado[i]) continue;
+
+        const letra = tentativa[i];
+
+        const index =
+            restantes.indexOf(letra);
+
+        if (index !== -1) {
+
+            resultado[i] =
+                `_${letra}_`;
+
+            restantes[index] = null;
+
+        } else {
+
+            resultado[i] = letra;
+        }
+    }
+
+    const linha =
+        resultado.join(" ");
+
+    jogo.tentativas.push(linha);
+
+    // =========================
+    // VITÓRIA
+    // =========================
+
+    if (tentativa === palavra) {
+
+        jogo.acabou = true;
+
+        const historico =
+            jogo.tentativas.join("\n");
+
+        delete jogosTermo[chatId];
+
+        return message.reply(
+`${historico}
+
+🎉 vc acertou`
+        );
+    }
+
+    // =========================
+    // DERROTA
+    // =========================
+
+    if (jogo.tentativas.length >= 6) {
+
+        jogo.acabou = true;
+
+        const historico =
+            jogo.tentativas.join("\n");
+
+        delete jogosTermo[chatId];
+
+        return message.reply(
+`${historico}
+
+💀 vc perdeu
+
+a palavra era:
+*${palavra}*`
+        );
+    }
+
+    // =========================
+    // CONTINUA
+    // =========================
+
+    return message.reply(
+        jogo.tentativas.join("\n")
+    );
+}
+
+    // =========================
 // ADMIN CMDS
 // =========================
 
