@@ -162,8 +162,18 @@ let ultimaAtividade = Date.now();
 // =========================
 
 let termoAtivo = true;
-
 let jogosTermo = {};
+
+// ranking por grupo
+let termoRank = {};
+
+if (fs.existsSync("termorank.json")) {
+    termoRank = JSON.parse(fs.readFileSync("termorank.json"));
+}
+
+function salvarRank() {
+    fs.writeFileSync("termorank.json", JSON.stringify(termoRank, null, 2));
+}
 
 
 // ===== FM REAÇÃO MAP =====
