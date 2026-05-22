@@ -556,16 +556,21 @@ if (comando.startsWith("!fm topmusicas")) {
                 const artist = t.artist.name;
                 const music = t.name;
 
-                const searchUrl =
-`https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${process.env.LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(music)}&format=json`;
+                const deezerUrl =
+`https://api.deezer.com/search?q=${encodeURIComponent(
+    artist + " " + music
+)}`;
 
-                const res = await axios.get(searchUrl);
+const res = await axios.get(deezerUrl);
 
-                const albumImg =
-                    res.data.track?.album?.image?.[3]?.["#text"] ||
-                    res.data.track?.album?.image?.[2]?.["#text"];
+const faixa = res.data.data?.[0];
 
-                if (!albumImg) {
+const capa =
+    faixa?.album?.cover_xl ||
+    faixa?.album?.cover_big ||
+    faixa?.album?.cover_medium;
+
+if (!capa) {
 
     const fallback = await sharp({
         create: {
@@ -581,13 +586,13 @@ if (comando.startsWith("!fm topmusicas")) {
     buffers.push(fallback);
 
     continue;
-                }
+}
 
-                const imgRes = await axios.get(albumImg, {
-                    responseType: "arraybuffer"
-                });
+const imgRes = await axios.get(capa, {
+    responseType: "arraybuffer"
+});
 
-                buffers.push(Buffer.from(imgRes.data));
+buffers.push(Buffer.from(imgRes.data));
 
             } catch (err) {
                 console.log(err);
