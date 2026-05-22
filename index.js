@@ -1075,6 +1075,29 @@ mande uma palavra de 5 letras`
     );
 }
 
+    //======================
+    // TERMO COMANDOS
+    //======================
+
+if (comando === "!termohelp") {
+    return message.reply(
+`🎮 COMANDOS TERMO
+
+!termo → inicia o jogo
+!parar → encerra (apenas quem começou a partida, ou o admin)
+!termoon → ativa termo (admin)
+!termooff → desativa termo (admin)
+
+🧠 COMO FUNCIONA
+
+*LETRA EM NEGRITO* = posição certa  
+_LETRA EM ITÁLICO_ = existe na palavra mas posição errada  
+letra normal = não existe
+
+❌ 5 erros máximos`
+    );
+}
+    
 // =========================
 // PARAR TERMO
 // =========================
