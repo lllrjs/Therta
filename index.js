@@ -229,7 +229,10 @@ client.on('message', async message => {
 
     ultimaAtividade = Date.now();
 
-    if (message.fromMe) return;
+    if (
+    processando.has(userId) &&
+    !jogosTermo[chatId]
+) return;
 
     const contact = await message.getContact();
     const userId = contact.id._serialized;
@@ -1084,7 +1087,7 @@ if (comando === "!parar") {
     ) {
 
         return message.reply(
-            "só quem criou ou admin pode parar 😶"
+            "só quem começou ou admin pode parar 😶"
         );
     }
 
