@@ -1103,12 +1103,34 @@ if (
         .replace(/[^A-Z]/gi, "")
         .toUpperCase();
 
-    if (tentativa.length !== 5) {
-        return message.reply("precisa ter 5 letras 😶");
-    }
+    // valida tentativa
+if (tentativa.length !== 5) {
+    return message.reply("a palavra precisa ter 5 letras 😶");
+}
 
+// só aqui conta tentativa válida
+jogo.tentativas.push(linha);
+
+if (jogo.tentativas.length >= 6) {
+
+    jogo.acabou = true;
+
+    const historico = jogo.tentativas.join("\n");
+
+    delete jogosTermo[chatId];
+
+    return message.reply(
+`${historico}
+
+💀 vc perdeu
+acabou suas 6 tentativas
+
+a palavra era: *${palavra}*`
+    );
+}
+    
     const palavra = jogo.palavra;
-
+    
     let resultado = Array(5).fill(null);
     let restantes = palavra.split("");
 
