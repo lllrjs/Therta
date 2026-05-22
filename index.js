@@ -998,7 +998,7 @@ async function pegarPalavraAleatoria() {
 // TERMO CMD
 // =========================
 
-if (comando === "!termocmd") {
+if (comando === "!termohelp") {
     return message.reply(
 `🎮 COMANDOS TERMO
 
@@ -1021,34 +1021,33 @@ if (comando === "!termocmd") {
 if (comando === "!termorank") {
 
     const chat = await message.getChat();
+    const participants = chat.participants || [];
 
-    const contatos = chat.participants || [];
-
-    let txt = "🏆 RANKING TERMO\n\n";
-
-    const ranking = Object.entries(termoRanking)
-        .sort((a, b) => b[1] - a[1]);
-
-    // adiciona quem nunca jogou
-    for (const p of contatos) {
+    let lista = participants.map(p => {
         const id = p.id._serialized;
+        const wins = termoRank[id] || 0;
 
-        if (!termoRanking[id]) {
-            termoRanking[id] = 0;
-        }
-    }
+        return {
+            id,
+            nome: p.id.user,
+            wins
+        };
+    });
 
-    for (const p of contatos) {
+    lista.sort((a, b) => b.wins - a.wins);
 
-        const id = p.id._serialized;
-        const nome = p.id.user;
+    let texto = "🏆 ranking termo:\n\n";
 
-        const vitorias = termoRanking[id] || 0;
+    const mentions = [];
 
-        txt += `@${nome} — ${vitorias} vitórias\n`;
-    }
+    lista.forEach((u, i) => {
 
-    return message.reply(txt);
+        texto += `${i + 1}. @${u.nome} — ${u.wins} vitórias\n`;
+
+        mentions.push(u.id);
+    });
+
+    return chat.sendMessage(texto, { mentions });
 }
 
 // =========================
