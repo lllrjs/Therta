@@ -157,6 +157,14 @@ let botAtivo = true;
 
 let processando = new Set();
 let ultimaAtividade = Date.now();
+    // =========================
+// TERMO CONFIG
+// =========================
+
+let termoAtivo = true;
+
+let jogosTermo = {};
+
 
 // ===== FM REAÇÃO MAP =====
 let lastMusicMessage = {};
@@ -964,13 +972,6 @@ return;
 }
 
 
-    // =========================
-// TERMO CONFIG
-// =========================
-
-let termoAtivo = true;
-
-let jogosTermo = {};
 
 // =========================
 // PEGAR PALAVRA
