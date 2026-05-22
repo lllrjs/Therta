@@ -226,25 +226,36 @@ async function isAdmin(message) {
 
 // ===== MESSAGE =====
 client.on('message', async message => {
+client.on('message', async message => {
 
     ultimaAtividade = Date.now();
 
-    if (
-    processando.has(userId) &&
-    !jogosTermo[chatId]
-) return;
+    if (message.fromMe) return;
 
     const contact = await message.getContact();
+
     const userId = contact.id._serialized;
 
-    if (processando.has(userId)) return;
+    const isGroup = message.from.endsWith('@g.us');
+
+    const userName =
+        contact.pushname ||
+        contact.name ||
+        "desconhecido";
+
+    const chatId = message.from;
+
+    // termo ignora trava do processando
+    if (
+        processando.has(userId) &&
+        !jogosTermo[chatId]
+    ) return;
 
     processando.add(userId);
-    setTimeout(() => processando.delete(userId), 2000);
 
-    const isGroup = message.from.endsWith('@g.us');
-    const userName = contact.pushname || contact.name || "desconhecido";
-    const chatId = message.from;
+    setTimeout(() => {
+        processando.delete(userId);
+    }, 2000);
 
     // ===== MEMÓRIA =====
     if (!memoria[userId]) {
