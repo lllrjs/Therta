@@ -226,7 +226,6 @@ async function isAdmin(message) {
 
 // ===== MESSAGE =====
 client.on('message', async message => {
-client.on('message', async message => {
 
     ultimaAtividade = Date.now();
 
