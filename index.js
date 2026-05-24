@@ -999,9 +999,20 @@ return;
 // PALAVRA ALEATÓRIA
 // =========================
 
-async function pegarPalavraAleatoria() {
+let palavrasValidas = [];
 
-    while (true) {
+async function carregarPalavras() {
+
+    try {
+
+        const res = await axios.get(
+            "https://api.dicionario-aberto.net/random"
+        );
+
+    } catch {}
+
+    // gera várias palavras válidas
+    while (palavrasValidas.length < 5000) {
 
         try {
 
@@ -1017,13 +1028,26 @@ async function pegarPalavraAleatoria() {
 
             if (
                 palavra &&
-                palavra.length === 5
+                palavra.length === 5 &&
+                !palavrasValidas.includes(palavra)
             ) {
-                return palavra;
+
+                palavrasValidas.push(palavra);
             }
 
         } catch {}
     }
+}
+
+async function pegarPalavraAleatoria() {
+
+    if (palavrasValidas.length === 0) {
+        await carregarPalavras();
+    }
+
+    return palavrasValidas[
+        Math.floor(Math.random() * palavrasValidas.length)
+    ];
 }
 
 // =========================
@@ -1242,28 +1266,13 @@ if (tentativa.length !== 5) {
 }
 
 // valida dicionário
-try {
-
-    const res = await axios.get(
-        `https://api.dictionaryapi.dev/api/v2/entries/pt/${tentativa.toLowerCase()}`
-    );
-
-    if (
-        !Array.isArray(res.data) ||
-        res.data.length === 0
-    ) {
-
-        return message.reply(
-            "essa palavra não existe 😶"
-        );
-    }
-
-} catch {
+if (!palavrasValidas.includes(tentativa)) {
 
     return message.reply(
         "essa palavra não existe 😶"
     );
 }
+
     const palavra = jogo.palavra;
 
     let resultado = Array(5).fill(null);
