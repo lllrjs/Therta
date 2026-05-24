@@ -271,15 +271,18 @@ async function carregarPalavras() {
             );
 
             let palavra = res.data.word
-                ?.normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^A-Z]/gi, "")
-                .toUpperCase()
-                .trim();
+    ?.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase()
+    .trim();
 
-            if (palavra && palavra.length === 5) {
-                palavrasValidas.add(palavra);
-            }
+if (
+    palavra &&
+    /^[A-Z]{5}$/.test(palavra)
+) {
+    palavrasValidas.add(palavra);
+}
 
         } catch {}
     }
