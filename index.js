@@ -258,7 +258,7 @@ async function isAdmin(message) {
 }
 
 // =========================
-// PALAVRA ALEATÓRIA
+// PALAVRA ALEATÓRIA (CORRIGIDO)
 // =========================
 
 async function carregarPalavras() {
@@ -266,23 +266,25 @@ async function carregarPalavras() {
     while (palavrasValidas.size < 300) {
 
         try {
+
             const res = await axios.get(
                 "https://api.dicionario-aberto.net/random"
             );
 
             let palavra = res.data.word
-    ?.normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z]/g, "")
-    .toUpperCase()
-    .trim();
+                ?.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^A-Z]/gi, "")
+                .toUpperCase()
+                .trim();
 
-if (
-    palavra &&
-    /^[A-Z]{5}$/.test(palavra)
-) {
-    palavrasValidas.add(palavra);
-}
+            // remove espaços e lixo invisível
+            palavra = palavra.replace(/\s/g, "");
+
+            // validação REAL tipo Wordle
+            if (palavra && /^[A-Z]{5}$/.test(palavra)) {
+                palavrasValidas.add(palavra);
+            }
 
         } catch {}
     }
@@ -296,7 +298,7 @@ async function pegarPalavraAleatoria() {
         await carregarPalavras();
     }
 
-    const lista = [...palavrasValidas];
+    const lista = Array.from(palavrasValidas);
 
     return lista[Math.floor(Math.random() * lista.length)];
 }
@@ -1258,6 +1260,17 @@ if (tentativa.length !== 5) {
 }
 
 // valida dicionário
+let tentativa = message.body
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z]/gi, "")
+    .toUpperCase();
+
+if (tentativa.length !== 5) {
+    return message.reply("a palavra precisa ter 5 letras 😶");
+}
+
 if (!palavrasValidas.has(tentativa)) {
     return message.reply("essa palavra não existe 😶");
 }
