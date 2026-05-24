@@ -1234,14 +1234,38 @@ if (
         .toUpperCase();
 
     // valida tamanho
-    if (tentativa.length !== 5) {
+if (tentativa.length !== 5) {
+
+    return message.reply(
+        "a palavra precisa ter 5 letras 😶"
+    );
+}
+
+// valida dicionário
+try {
+
+    const res = await axios.get(
+        `https://api.dicionario-aberto.net/search/${tentativa.toLowerCase()}`
+    );
+
+    if (
+        !Array.isArray(res.data) ||
+        res.data.length === 0
+    ) {
 
         return message.reply(
-            "a palavra precisa ter 5 letras 😶"
+            "essa palavra não existe 😶"
         );
     }
 
-    const palavra = jogo.palavra;
+} catch {
+
+    return message.reply(
+        "essa palavra não existe 😶"
+    );
+}
+
+const palavra = jogo.palavra;
 
     let resultado = Array(5).fill(null);
 
