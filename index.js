@@ -1041,7 +1041,7 @@ if (comando === "!termorank") {
 
     let lista = participants.map(p => {
         const id = p.id._serialized;
-        const wins = termoRank[id] || 0;
+        const wins = termoRanking[id] || 0;
 
         return {
             id,
