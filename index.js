@@ -1206,6 +1206,8 @@ if (
     return;
 }
 
+
+    
 // =========================
 // SISTEMA TERMO
 // =========================
@@ -1215,7 +1217,7 @@ if (
     message.type === "chat" &&
     message.body &&
     !message.body.startsWith("!")
-)
+) {
 
     const jogo = jogosTermo[chatId];
 
