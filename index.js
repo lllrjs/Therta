@@ -1108,6 +1108,8 @@ if (
 
 if (
     jogosTermo[chatId] &&
+    message.type === "chat" &&
+    message.body &&
     !message.body.startsWith("!")
 ) {
 
