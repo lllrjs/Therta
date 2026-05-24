@@ -165,6 +165,8 @@ let termoAtivo = true;
 let jogosTermo = {};
 let termoRanking = {};
 
+let palavrasValidas = new Set();
+
 
 // ===== FM REAÇÃO MAP =====
 let lastMusicMessage = {};
@@ -259,11 +261,11 @@ async function isAdmin(message) {
 // PALAVRA ALEATÓRIA
 // =========================
 
-    let palavrasValidas = [];
+let palavrasValidas = new Set();
 
 async function carregarPalavras() {
 
-    while (palavrasValidas.length < 300) {
+    while (palavrasValidas.size < 300) {
 
         try {
 
@@ -275,34 +277,30 @@ async function carregarPalavras() {
                 ?.normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
                 .replace(/[^A-Z]/gi, "")
-                .toUpperCase();
+                .toUpperCase()
+                .trim();
 
             if (
                 palavra &&
-                palavra.length === 5 &&
-                !palavrasValidas.includes(palavra)
+                palavra.length === 5
             ) {
-
-                palavrasValidas.push(palavra);
+                palavrasValidas.add(palavra);
             }
 
         } catch {}
     }
 
-    console.log(
-        `📚 ${palavrasValidas.length} palavras carregadas`
-    );
+    console.log(`📚 ${palavrasValidas.size} palavras carregadas`);
 }
 
 async function pegarPalavraAleatoria() {
 
-    if (palavrasValidas.length === 0) {
-
+    if (palavrasValidas.size === 0) {
         await carregarPalavras();
     }
 
-    return palavrasValidas[
-        Math.floor(Math.random() * palavrasValidas.length)
+    return [...palavrasValidas][
+        Math.floor(Math.random() * palavrasValidas.size)
     ];
 }
 
@@ -1263,11 +1261,8 @@ if (tentativa.length !== 5) {
 }
 
 // valida dicionário
-if (!palavrasValidas.includes(tentativa)) {
-
-    return message.reply(
-        "essa palavra não existe 😶"
-    );
+if (!palavrasValidas.has(tentativa)) {
+    return message.reply("essa palavra não existe 😶");
 }
 
     const palavra = jogo.palavra;
