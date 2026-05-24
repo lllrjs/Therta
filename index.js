@@ -255,6 +255,57 @@ async function isAdmin(message) {
     return participant?.isAdmin || participant?.isSuperAdmin;
 }
 
+// =========================
+// PALAVRA ALEATÓRIA
+// =========================
+
+    let palavrasValidas = [];
+
+async function carregarPalavras() {
+
+    while (palavrasValidas.length < 300) {
+
+        try {
+
+            const res = await axios.get(
+                "https://api.dicionario-aberto.net/random"
+            );
+
+            let palavra = res.data.word
+                ?.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^A-Z]/gi, "")
+                .toUpperCase();
+
+            if (
+                palavra &&
+                palavra.length === 5 &&
+                !palavrasValidas.includes(palavra)
+            ) {
+
+                palavrasValidas.push(palavra);
+            }
+
+        } catch {}
+    }
+
+    console.log(
+        `📚 ${palavrasValidas.length} palavras carregadas`
+    );
+}
+
+async function pegarPalavraAleatoria() {
+
+    if (palavrasValidas.length === 0) {
+
+        await carregarPalavras();
+    }
+
+    return palavrasValidas[
+        Math.floor(Math.random() * palavrasValidas.length)
+    ];
+}
+
 // ===== MESSAGE =====
 client.on('message', async message => {
 
@@ -995,56 +1046,6 @@ return;
 }
 
 
-// =========================
-// PALAVRA ALEATÓRIA
-// =========================
-
-    let palavrasValidas = [];
-
-async function carregarPalavras() {
-
-    while (palavrasValidas.length < 300) {
-
-        try {
-
-            const res = await axios.get(
-                "https://api.dicionario-aberto.net/random"
-            );
-
-            let palavra = res.data.word
-                ?.normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^A-Z]/gi, "")
-                .toUpperCase();
-
-            if (
-                palavra &&
-                palavra.length === 5 &&
-                !palavrasValidas.includes(palavra)
-            ) {
-
-                palavrasValidas.push(palavra);
-            }
-
-        } catch {}
-    }
-
-    console.log(
-        `📚 ${palavrasValidas.length} palavras carregadas`
-    );
-}
-
-async function pegarPalavraAleatoria() {
-
-    if (palavrasValidas.length === 0) {
-
-        await carregarPalavras();
-    }
-
-    return palavrasValidas[
-        Math.floor(Math.random() * palavrasValidas.length)
-    ];
-}
 
 // =========================
 // TERMO HELP
