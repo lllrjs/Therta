@@ -189,6 +189,14 @@ if (fs.existsSync('lastfm.json')) {
     lastfmUsers = JSON.parse(fs.readFileSync('lastfm.json'));
 }
 
+if (fs.existsSync("termorank.json")) {
+
+    termoRanking =
+        JSON.parse(
+            fs.readFileSync("termorank.json")
+        );
+}
+
 function salvarMemoria() {
     fs.writeFileSync('memoria.json', JSON.stringify(memoria, null, 2));
 }
