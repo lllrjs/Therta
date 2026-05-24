@@ -1245,7 +1245,7 @@ if (tentativa.length !== 5) {
 try {
 
     const res = await axios.get(
-        `https://api.dicionario-aberto.net/search/${tentativa.toLowerCase()}`
+        `https://api.dictionaryapi.dev/api/v2/entries/pt/${tentativa.toLowerCase()}`
     );
 
     if (
@@ -1264,8 +1264,7 @@ try {
         "essa palavra não existe 😶"
     );
 }
-
-const palavra = jogo.palavra;
+    const palavra = jogo.palavra;
 
     let resultado = Array(5).fill(null);
 
