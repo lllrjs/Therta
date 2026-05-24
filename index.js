@@ -1467,4 +1467,5 @@ setInterval(() => {
     }
 }, 60000);
 
+carregarPalavras();
 client.initialize();
