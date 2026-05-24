@@ -999,20 +999,11 @@ return;
 // PALAVRA ALEATÓRIA
 // =========================
 
-let palavrasValidas = [];
+    let palavrasValidas = [];
 
 async function carregarPalavras() {
 
-    try {
-
-        const res = await axios.get(
-            "https://api.dicionario-aberto.net/random"
-        );
-
-    } catch {}
-
-    // gera várias palavras válidas
-    while (palavrasValidas.length < 5000) {
+    while (palavrasValidas.length < 300) {
 
         try {
 
@@ -1037,11 +1028,16 @@ async function carregarPalavras() {
 
         } catch {}
     }
+
+    console.log(
+        `📚 ${palavrasValidas.length} palavras carregadas`
+    );
 }
 
 async function pegarPalavraAleatoria() {
 
     if (palavrasValidas.length === 0) {
+
         await carregarPalavras();
     }
 
