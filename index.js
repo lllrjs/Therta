@@ -989,16 +989,6 @@ return;
 
 
 // =========================
-// TERMO CONFIG
-// =========================
-
-let termoAtivo = true;
-
-let jogosTermo = {};
-
-let termoRanking = {};
-
-// =========================
 // PALAVRA ALEATÓRIA
 // =========================
 
