@@ -988,15 +988,29 @@ return;
 }
 
 
+// =========================
+// TERMO CONFIG
+// =========================
+
+let termoAtivo = true;
+
+let jogosTermo = {};
+
+let termoRanking = {};
 
 // =========================
 // PALAVRA ALEATÓRIA
 // =========================
 
 async function pegarPalavraAleatoria() {
+
     while (true) {
+
         try {
-            const res = await axios.get("https://api.dicionario-aberto.net/random");
+
+            const res = await axios.get(
+                "https://api.dicionario-aberto.net/random"
+            );
 
             let palavra = res.data.word
                 ?.normalize("NFD")
@@ -1004,30 +1018,68 @@ async function pegarPalavraAleatoria() {
                 .replace(/[^A-Z]/gi, "")
                 .toUpperCase();
 
-            if (palavra && palavra.length === 5) return palavra;
+            if (
+                palavra &&
+                palavra.length === 5
+            ) {
+                return palavra;
+            }
 
         } catch {}
     }
 }
 
 // =========================
-// TERMO CMD
+// TERMO HELP
 // =========================
 
 if (comando === "!termohelp") {
-    return message.reply(
-`🎮 COMANDOS TERMO
 
-!termo → inicia o jogo
+    return message.reply(
+`🎮 comandos termo
+
+!termo → inicia partida
 !parar → encerra partida (apenas quem começou a partida ou o admin podem usar)
-!termorank → ranking do grupo
+!termorank → ranking
+!termoon → ativa termo (apenas admin)
+!termooff → desativa termo (apenas admin)
 
 📌 regras:
-- palavras com 5 letras
-- letras *negrito* = posição certa
-- letras _itálico_ = letra existe mas está no lugar errado
-- letras normais = não existem na palavra`
+- palavras de 5 letras
+- *negrito* = letra certa no lugar certo
+- _itálico_ = letra existe mas tá no lugar errado
+- letra normal = não existe na palavra`
     );
+}
+
+// =========================
+// TERMO ON
+// =========================
+
+if (comando === "!termoon") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só admin 😶");
+    }
+
+    termoAtivo = true;
+
+    return message.reply("✅ termo ativado");
+}
+
+// =========================
+// TERMO OFF
+// =========================
+
+if (comando === "!termooff") {
+
+    if (!(await isAdmin(message))) {
+        return message.reply("só admin 😶");
+    }
+
+    termoAtivo = false;
+
+    return message.reply("🚫 termo desativado");
 }
 
 // =========================
@@ -1037,16 +1089,17 @@ if (comando === "!termohelp") {
 if (comando === "!termorank") {
 
     const chat = await message.getChat();
+
     const participants = chat.participants || [];
 
     let lista = participants.map(p => {
+
         const id = p.id._serialized;
-        const wins = termoRanking[id] || 0;
 
         return {
             id,
-            nome: p.id.user,
-            wins
+            numero: p.id.user,
+            wins: termoRanking[id] || 0
         };
     });
 
@@ -1056,14 +1109,18 @@ if (comando === "!termorank") {
 
     const mentions = [];
 
-    lista.forEach((u, i) => {
+    for (let i = 0; i < lista.length; i++) {
 
-        texto += `${i + 1}. @${u.nome} — ${u.wins} vitórias\n`;
+        const u = lista[i];
+
+        texto += `${i + 1}. @${u.numero} — ${u.wins} vitórias\n`;
 
         mentions.push(u.id);
-    });
+    }
 
-    return chat.sendMessage(texto, { mentions });
+    return client.sendMessage(chatId, texto, {
+        mentions
+    });
 }
 
 // =========================
@@ -1073,14 +1130,15 @@ if (comando === "!termorank") {
 if (comando === "!termo") {
 
     if (!termoAtivo) {
-        return message.reply("termo desativado 😶");
+        return message.reply("o termo tá desativado 😶");
     }
 
     if (jogosTermo[chatId]) {
-        return message.reply("já tem jogo rolando 😶");
+        return message.reply("já existe uma partida 😶");
     }
 
-    const palavra = await pegarPalavraAleatoria();
+    const palavra =
+        await pegarPalavraAleatoria();
 
     jogosTermo[chatId] = {
         dono: userId,
@@ -1088,108 +1146,11 @@ if (comando === "!termo") {
         tentativas: []
     };
 
-    return message.reply("🎮 termo iniciado\n\nmande uma palavra de 5 letras");
-}
+    return message.reply(
+`🎮 termo iniciado
 
-// =========================
-// IGNORA COMANDOS DURANTE TERMO
-// =========================
-
-if (
-    jogosTermo[chatId] &&
-    message.body.startsWith("!")
-) {
-    return; // ignora figurinhas/comandos
-}
-
-// =========================
-// SISTEMA TERMO
-// =========================
-
-if (
-    jogosTermo[chatId] &&
-    message.type === "chat" &&
-    message.body &&
-    !message.body.startsWith("!")
-) {
-
-    const jogo = jogosTermo[chatId];
-
-    let tentativa = message.body
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^A-Z]/gi, "")
-        .toUpperCase();
-
-    // validação
-    if (tentativa.length !== 5) {
-        return message.reply("a palavra precisa ter 5 letras 😶");
-    }
-
-    const palavra = jogo.palavra;
-
-    let resultado = Array(5).fill(null);
-    let restantes = palavra.split("");
-
-    // corretas
-    for (let i = 0; i < 5; i++) {
-        if (tentativa[i] === palavra[i]) {
-            resultado[i] = `*${tentativa[i]}*`;
-            restantes[i] = null;
-        }
-    }
-
-    // quase corretas
-    for (let i = 0; i < 5; i++) {
-        if (resultado[i]) continue;
-
-        const letra = tentativa[i];
-        const index = restantes.indexOf(letra);
-
-        if (index !== -1) {
-            resultado[i] = `_${letra}_`;
-            restantes[index] = null;
-        } else {
-            resultado[i] = letra;
-        }
-    }
-
-    const linha = resultado.join(" ");
-
-    // ✅ AGORA SIM push correto
-    jogo.tentativas.push(linha);
-
-    // derrota
-    if (jogo.tentativas.length >= 6) {
-
-        const historico = jogo.tentativas.join("\n");
-
-        delete jogosTermo[chatId];
-
-        return message.reply(
-`${historico}
-
-💀 vc perdeu
-acabaram suas 6 tentativas
-
-a palavra era: *${palavra}*`
-        );
-    }
-
-    // vitória
-    if (tentativa === palavra) {
-
-        termoRanking[userId] =
-            (termoRanking[userId] || 0) + 1;
-
-        const hist = jogo.tentativas.join("\n");
-
-        delete jogosTermo[chatId];
-
-        return message.reply(`${hist}\n\n🎉 você acertou`);
-    }
-
-    return message.reply(jogo.tentativas.join("\n"));
+mande uma palavra de 5 letras`
+    );
 }
 
 // =========================
@@ -1206,15 +1167,165 @@ if (comando === "!parar") {
 
     const admin = await isAdmin(message);
 
-    if (jogo.dono !== userId && !admin) {
-        return message.reply("só dono ou admin 😶");
+    if (
+        jogo.dono !== userId &&
+        !admin
+    ) {
+        return message.reply(
+            "só dono da partida ou admin 😶"
+        );
     }
 
     delete jogosTermo[chatId];
 
-    return message.reply("🛑 termo encerrado");
+    return message.reply(
+        "🛑 partida encerrada"
+    );
 }
 
+// =========================
+// IGNORA FIGURINHA/IMAGEM
+// =========================
+
+if (
+    jogosTermo[chatId] &&
+    (
+        message.hasMedia ||
+        message.type !== "chat"
+    )
+) {
+    return;
+}
+
+// =========================
+// IGNORA COMANDOS
+// =========================
+
+if (
+    jogosTermo[chatId] &&
+    message.body.startsWith("!") &&
+    comando !== "!parar"
+) {
+    return;
+}
+
+// =========================
+// SISTEMA TERMO
+// =========================
+
+if (
+    jogosTermo[chatId] &&
+    !message.body.startsWith("!")
+) {
+
+    const jogo = jogosTermo[chatId];
+
+    // só quem iniciou joga
+    if (jogo.dono !== userId) {
+        return;
+    }
+
+    let tentativa = message.body
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Z]/gi, "")
+        .toUpperCase();
+
+    // valida tamanho
+    if (tentativa.length !== 5) {
+
+        return message.reply(
+            "a palavra precisa ter 5 letras 😶"
+        );
+    }
+
+    const palavra = jogo.palavra;
+
+    let resultado = Array(5).fill(null);
+
+    let restantes = palavra.split("");
+
+    // corretas
+    for (let i = 0; i < 5; i++) {
+
+        if (tentativa[i] === palavra[i]) {
+
+            resultado[i] =
+                `*${tentativa[i]}*`;
+
+            restantes[i] = null;
+        }
+    }
+
+    // fora do lugar
+    for (let i = 0; i < 5; i++) {
+
+        if (resultado[i]) continue;
+
+        const letra = tentativa[i];
+
+        const index =
+            restantes.indexOf(letra);
+
+        if (index !== -1) {
+
+            resultado[i] =
+                `_${letra}_`;
+
+            restantes[index] = null;
+
+        } else {
+
+            resultado[i] = letra;
+        }
+    }
+
+    const linha =
+        resultado.join(" ");
+
+    jogo.tentativas.push(linha);
+
+    // vitória
+    if (tentativa === palavra) {
+
+        termoRanking[userId] =
+            (termoRanking[userId] || 0) + 1;
+
+        const historico =
+            jogo.tentativas.join("\n");
+
+        delete jogosTermo[chatId];
+
+        return message.reply(
+`${historico}
+
+🎉 você acertou`
+        );
+    }
+
+    // derrota
+    if (jogo.tentativas.length >= 6) {
+
+        const historico =
+            jogo.tentativas.join("\n");
+
+        delete jogosTermo[chatId];
+
+        return message.reply(
+`${historico}
+
+💀 vc perdeu
+
+a palavra era:
+*${palavra}*`
+        );
+    }
+
+    return message.reply(
+        jogo.tentativas.join("\n")
+    );
+}
     
 
     // =========================
