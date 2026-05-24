@@ -173,7 +173,6 @@ let lastMusicMessage = {};
 let memoria = {};
 let memoriaGrupos = {};
 let lastfmUsers = {};
-let termoRanking = {};
 
 if (fs.existsSync("termorank.json")) {
     termoRanking =
