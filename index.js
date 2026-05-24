@@ -1212,8 +1212,10 @@ if (
 
 if (
     jogosTermo[chatId] &&
+    message.type === "chat" &&
+    message.body &&
     !message.body.startsWith("!")
-) {
+)
 
     const jogo = jogosTermo[chatId];
 
@@ -1288,6 +1290,8 @@ if (
 
         termoRanking[userId] =
             (termoRanking[userId] || 0) + 1;
+
+        salvarTermoRanking();
 
         const historico =
             jogo.tentativas.join("\n");
