@@ -173,6 +173,14 @@ let lastMusicMessage = {};
 let memoria = {};
 let memoriaGrupos = {};
 let lastfmUsers = {};
+let termoRanking = {};
+
+if (fs.existsSync("termorank.json")) {
+    termoRanking =
+        JSON.parse(
+            fs.readFileSync("termorank.json")
+        );
+}
 
 if (fs.existsSync('memoria.json')) {
     memoria = JSON.parse(fs.readFileSync('memoria.json'));
@@ -188,6 +196,14 @@ function salvarMemoria() {
 
 function salvarLastfm() {
     fs.writeFileSync('lastfm.json', JSON.stringify(lastfmUsers, null, 2));
+}
+
+function salvarTermoRanking() {
+
+    fs.writeFileSync(
+        "termorank.json",
+        JSON.stringify(termoRanking, null, 2)
+    );
 }
 
 // ===== QR =====
