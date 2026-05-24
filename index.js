@@ -261,14 +261,11 @@ async function isAdmin(message) {
 // PALAVRA ALEATÓRIA
 // =========================
 
-let palavrasValidas = new Set();
-
 async function carregarPalavras() {
 
     while (palavrasValidas.size < 300) {
 
         try {
-
             const res = await axios.get(
                 "https://api.dicionario-aberto.net/random"
             );
@@ -280,10 +277,7 @@ async function carregarPalavras() {
                 .toUpperCase()
                 .trim();
 
-            if (
-                palavra &&
-                palavra.length === 5
-            ) {
+            if (palavra && palavra.length === 5) {
                 palavrasValidas.add(palavra);
             }
 
@@ -299,9 +293,9 @@ async function pegarPalavraAleatoria() {
         await carregarPalavras();
     }
 
-    return [...palavrasValidas][
-        Math.floor(Math.random() * palavrasValidas.size)
-    ];
+    const lista = [...palavrasValidas];
+
+    return lista[Math.floor(Math.random() * lista.length)];
 }
 
 // ===== MESSAGE =====
