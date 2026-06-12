@@ -404,7 +404,7 @@ if (message.body.toLowerCase() === "!copa brasil") {
 if (message.body.toLowerCase() === "!copa tabela") {
   return message.reply("📊 Tabela em desenvolvimento...");
 }
-  
+  });
   
     // =========================
     // FM HELP
