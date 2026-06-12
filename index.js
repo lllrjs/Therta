@@ -173,6 +173,33 @@ let termoAtivo = true;
 let jogosTermo = {};
 let termoRanking = {};
 
+// =========================
+// COPA FUNÇÕES 
+// =========================
+
+async function checkIfLive() {
+  const now = Date.now();
+
+  if (now - liveCache.lastCheck < 60000) {
+    return liveCache.hasLive;
+  }
+
+  liveCache.lastCheck = now;
+
+  const res = await axios.get(
+    "https://v3.football.api-sports.io/fixtures?live=all",
+    {
+      headers: {
+        "x-apisports-key": "SUA_API_KEY"
+      }
+    }
+  );
+
+  liveCache.data = res.data.response;
+  liveCache.hasLive = liveCache.data.length > 0;
+
+  return liveCache.hasLive;
+}
 
 // ===== FM REAÇÃO MAP =====
 let lastMusicMessage = {};
