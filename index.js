@@ -6,6 +6,9 @@ const fs = require('fs');
 const axios = require('axios');
 const sharp = require('sharp');
 const path = require('path');
+const client = new Client({
+  authStrategy: new LocalAuth()
+});
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
     const size = 300;
@@ -154,6 +157,11 @@ const openai = new OpenAI({
 let botId = null;
 let caosAtivo = false;
 let botAtivo = true;
+let liveCache = {
+  data: null,
+  lastCheck: 0,
+  hasLive: false
+};
 
 let processando = new Set();
 let ultimaAtividade = Date.now();
