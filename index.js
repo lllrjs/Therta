@@ -9,6 +9,13 @@ const path = require('path');
 const client = new Client({
   authStrategy: new LocalAuth()
 });
+const API_KEY = "8a7c498e36d42b13bc4257b88f6efedd";
+const BASE_URL = "https://v3.football.api-sports.io";
+
+const headers = {
+  "x-apisports-key": API_KEY
+};
+
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
     const size = 300;
