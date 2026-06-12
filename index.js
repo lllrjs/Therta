@@ -348,6 +348,60 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
+
+// =========================
+// COPA 
+// =========================
+
+if (message.body.toLowerCase() === "!copa") {
+  return message.reply(
+    "🏆 Copa do Mundo\n\n" +
+    "📌 !copa ao vivo\n" +
+    "📌 !copa tabela\n" +
+    "📌 !copa brasil"
+  );
+}
+
+  // =========================
+// COPA AO VIVO
+// =========================
+
+if (message.body.toLowerCase() === "!copa ao vivo") {
+
+  const hasLive = await checkIfLive();
+
+  if (!hasLive) {
+    return message.reply("⚠️ Nenhum jogo ao vivo no momento.");
+  }
+
+  let msg = "🔴 AO VIVO\n\n";
+
+  for (const match of liveCache.data) {
+    msg += `⚽ ${match.teams.home.name} ${match.goals.home} x ${match.goals.away} ${match.teams.away.name}\n`;
+    msg += `⏱ ${match.fixture.status.elapsed || 0}'\n\n`;
+  }
+
+  return message.reply(msg);
+}
+
+// =========================
+// COPA BRASIL
+// =========================
+
+if (message.body.toLowerCase() === "!copa brasil") {
+  return message.reply("🇧🇷 Brasil na Copa (em desenvolvimento)");
+}
+
+
+  // =========================
+// COPA TABELAS
+// =========================
+  
+if (message.body.toLowerCase() === "!copa tabela") {
+  return message.reply("📊 Tabela em desenvolvimento...");
+}
+  
+  
     // =========================
     // FM HELP
     // =========================
@@ -370,18 +424,7 @@ client.on('message', async message => {
     }
 
 
-// =========================
-// COPA 
-// =========================
 
-if (message.body.toLowerCase() === "!copa") {
-  return message.reply(
-    "🏆 Copa do Mundo\n\n" +
-    "📌 !copa ao vivo\n" +
-    "📌 !copa tabela\n" +
-    "📌 !copa brasil"
-  );
-}
   
   
     // =========================
