@@ -369,6 +369,21 @@ client.on('message', async message => {
         );
     }
 
+
+// =========================
+// COPA 
+// =========================
+
+if (message.body.toLowerCase() === "!copa") {
+  return message.reply(
+    "🏆 Copa do Mundo\n\n" +
+    "📌 !copa ao vivo\n" +
+    "📌 !copa tabela\n" +
+    "📌 !copa brasil"
+  );
+}
+  
+  
     // =========================
     // FM REGISTRAR
     // =========================
