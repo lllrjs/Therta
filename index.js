@@ -369,6 +369,16 @@ if (comando === "!copa") {
 
     const jogos = res.data.Results || [];
 
+function emojiBandeira(code = "") {
+    if (!code) return "🏳️";
+
+    return code
+        .toUpperCase()
+        .replace(/./g, char =>
+            String.fromCodePoint(127397 + char.charCodeAt())
+        );
+}
+  
     // 🕒 converte pra horário de Brasília
     function toBrasilia(dateStr) {
         return new Date(
