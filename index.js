@@ -361,84 +361,53 @@ client.on('message', async message => {
 // !COPA - COPA COMANDOS
 // =========================
 
-  // =========================
-// !COPA - COMANDO OTIMIZADO
-// =========================
+if (comando === "!copa") {
 
-// cache simples pra não travar o bot
-let cacheCopa = {
-    data: null,
-    timestamp: 0
-};
+const res = await axios.get("https://worldcup26.ir/get/games");  
+const jogos = res.data.games || [];  
 
-async function getCopaHoje() {
+// data atual no formato MM/DD/YYYY  
+const hoje = new Date();  
+const dataHoje =  
+    String(hoje.getMonth() + 1).padStart(2, "0") + "/" +  
+    String(hoje.getDate()).padStart(2, "0") + "/" +  
+    hoje.getFullYear();  
 
-    const agora = Date.now();
+// filtra apenas jogos do dia  
+const jogosHoje = jogos.filter(j =>  
+    j.local_date?.startsWith(dataHoje)  
+);  
 
-    // 🔥 cache de 30s
-    if (cacheCopa.data && agora - cacheCopa.timestamp < 30000) {
-        return cacheCopa.data;
-    }
+if (!jogosHoje.length) {  
+    return message.reply("⚽ Nenhum jogo hoje.");  
+}  
 
-    const res = await axios.get(
-        "https://api-football-v1.p.rapidapi.com/v3/fixtures",
-        {
-            headers: {
-                "X-RapidAPI-Key": process.env.FOOTBALL_API_KEY,
-                "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-            },
-            params: {
-                league: 1, // Copa do Mundo (pode variar)
-                season: 2026,
-                date: new Date().toISOString().split("T")[0]
-            }
-        }
-    );
+let texto = "🏆 Copa do Mundo 2026 (Jogos mais próximos)\n\n";  
 
-    cacheCopa.data = res.data.response || [];
-    cacheCopa.timestamp = agora;
+for (const game of jogosHoje) {  
 
-    return cacheCopa.data;
-}
+    const home = getPais(game.home_team_name_en || "Unknown");  
+    const away = getPais(game.away_team_name_en || "Unknown");  
 
+    const homeFlag = emojiBandeira(home.code);  
+    const awayFlag = emojiBandeira(away.code);  
 
-// =========================
-// COMANDO !COPA
-// =========================
+    let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;  
 
-if ((message.body || "").toLowerCase().trim() === "!copa") {
+    const finalizado =  
+        game.finished === true ||  
+        game.finished === "TRUE" ||  
+        game.status === "FINISHED";  
 
-    const jogos = await getCopaHoje();
+    if (finalizado) {  
+        linha += `\n${game.home_score} - ${game.away_score}`;  
+    }  
 
-    if (!jogos.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
-    }
+    texto += linha + "\n\n";  
+}  
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
+return message.reply(texto);
 
-    for (const game of jogos) {
-
-        const home = game.teams?.home?.name || "Unknown";
-        const away = game.teams?.away?.name || "Unknown";
-
-        const status = game.fixture?.status?.short;
-
-        let linha = `⚽ ${home} vs ${away}`;
-
-        // 🔴 AO VIVO
-        if (status === "LIVE") {
-            linha += ` 🔴 AO VIVO (${game.fixture.status.elapsed}')`;
-        }
-
-        // 🏁 FINALIZADO
-        if (status === "FT") {
-            linha += `\n${game.goals.home} - ${game.goals.away}`;
-        }
-
-        texto += linha + "\n\n";
-    }
-
-    return message.reply(texto);
 }
   
 // =========================
