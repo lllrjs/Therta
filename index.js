@@ -368,11 +368,9 @@ if (message.body?.toLowerCase().trim() === "!copa") {
   const jogos = res.data.games;
 
   // 🟢 pega data atual no horário de Brasília
-  const agoraBR = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-  );
-
-  const hojeBR = agoraBR.toISOString().split("T")[0];
+  const hojeBR = new Date().toLocaleDateString("sv-SE", {
+  timeZone: "America/Sao_Paulo"
+});
 
   function parseData(dataStr) {
     if (!dataStr) return null;
