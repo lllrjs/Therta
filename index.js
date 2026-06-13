@@ -361,21 +361,54 @@ client.on('message', async message => {
 // !COPA - COPA COMANDOS
 // =========================
 
-  if (comando === "!copa") {
+  // =========================
+// !COPA - COMANDO OTIMIZADO
+// =========================
 
-    const res = await axios.get("https://api-football-v1.p.rapidapi.com/v3/fixtures", {
-        headers: {
-            "X-RapidAPI-Key": process.env.FOOTBALL_API_KEY,
-            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
-        },
-        params: {
-            league: 1, // FIFA World Cup (geralmente 1 ou 2 depende da API)
-            season: 2026,
-            date: new Date().toISOString().split("T")[0]
+// cache simples pra não travar o bot
+let cacheCopa = {
+    data: null,
+    timestamp: 0
+};
+
+async function getCopaHoje() {
+
+    const agora = Date.now();
+
+    // 🔥 cache de 30s
+    if (cacheCopa.data && agora - cacheCopa.timestamp < 30000) {
+        return cacheCopa.data;
+    }
+
+    const res = await axios.get(
+        "https://api-football-v1.p.rapidapi.com/v3/fixtures",
+        {
+            headers: {
+                "X-RapidAPI-Key": process.env.FOOTBALL_API_KEY,
+                "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+            },
+            params: {
+                league: 1, // Copa do Mundo (pode variar)
+                season: 2026,
+                date: new Date().toISOString().split("T")[0]
+            }
         }
-    });
+    );
 
-    const jogos = res.data.response || [];
+    cacheCopa.data = res.data.response || [];
+    cacheCopa.timestamp = agora;
+
+    return cacheCopa.data;
+}
+
+
+// =========================
+// COMANDO !COPA
+// =========================
+
+if ((message.body || "").toLowerCase().trim() === "!copa") {
+
+    const jogos = await getCopaHoje();
 
     if (!jogos.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
@@ -385,14 +418,14 @@ client.on('message', async message => {
 
     for (const game of jogos) {
 
-        const home = game.teams.home.name;
-        const away = game.teams.away.name;
+        const home = game.teams?.home?.name || "Unknown";
+        const away = game.teams?.away?.name || "Unknown";
 
-        const status = game.fixture.status.short;
+        const status = game.fixture?.status?.short;
 
         let linha = `⚽ ${home} vs ${away}`;
 
-        // 🟢 AO VIVO
+        // 🔴 AO VIVO
         if (status === "LIVE") {
             linha += ` 🔴 AO VIVO (${game.fixture.status.elapsed}')`;
         }
@@ -406,8 +439,8 @@ client.on('message', async message => {
     }
 
     return message.reply(texto);
-  }
-
+}
+  
 // =========================
 // !COPA AO VIVO (COM MINUTO)
 // =========================
