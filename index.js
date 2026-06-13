@@ -339,25 +339,21 @@ if (comando === "!copateste") {
     try {
 
         const { data } = await axios.get(
-            "https://v3.football.api-sports.io/standings",
-            {
-                headers,
-                params: {
-                    league: 1,
-                    season: 2026
-                }
-            }
+            "https://v3.football.api-sports.io/leagues",
+            { headers }
+        );
+
+        const copa = data.response.find(
+            l => l.league?.id === 1
         );
 
         return message.reply(
-            `results: ${data.results}`
+            JSON.stringify(copa, null, 2).slice(0, 1500)
         );
 
     } catch (err) {
 
-        return message.reply(
-            err.message
-        );
+        return message.reply(err.message);
     }
 }
 
