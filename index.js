@@ -473,6 +473,50 @@ if (comando === "!copalive") {
 
     return message.reply(texto);
 }
+
+// =========================
+// !COPA ACABADOS (RESULTADOS FINAIS)
+// =========================
+
+if (comando === "!copagols") {
+
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games || [];
+
+    const finalizados = jogos.filter(j => {
+
+        const status = (j.status || "").toUpperCase();
+
+        return (
+            status.includes("FINISHED") ||
+            status.includes("FT") ||
+            j.finished === true ||
+            j.finished === "TRUE"
+        );
+    });
+
+    if (!finalizados.length) {
+        return message.reply("⚽ Nenhum jogo finalizado ainda.");
+    }
+
+    let texto = "🏁 COPA - RESULTADOS FINAIS\n\n";
+
+    for (const game of finalizados) {
+
+        const home = getPais(game.home_team_name_en || "Unknown");
+        const away = getPais(game.away_team_name_en || "Unknown");
+
+        const homeFlag = emojiBandeira(home.code);
+        const awayFlag = emojiBandeira(away.code);
+
+        const homeScore = game.home_score ?? 0;
+        const awayScore = game.away_score ?? 0;
+
+        texto += `${homeFlag} ${home.nome} ${homeScore} x ${awayScore} ${away.nome} ${awayFlag}\n\n`;
+    }
+
+    return message.reply(texto);
+}
   
   
     // =========================
