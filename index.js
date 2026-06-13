@@ -362,27 +362,30 @@ client.on('message', async message => {
 // COPA - COMANDO !COPA
 // =========================
 
-  if (msg.body === "!copa") {
+if (comando === "!copa") {
+    try {
+        const res = await axios.get("https://worldcup26.ir/get/games");
+        const jogos = res.data.games;
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games;
+        let texto = "🏆 Copa do Mundo 2026\n\n";
 
-    let texto = "🏆 Copa do Mundo 2026\n\n";
+        jogos.forEach(game => {
+            const home = getPais(game.home_team_name_en);
+            const away = getPais(game.away_team_name_en);
 
-    jogos.forEach(game => {
+            const homeFlag = emojiBandeira(home.code);
+            const awayFlag = emojiBandeira(away.code);
 
-      const home = getPais(game.home_team_name_en);
-      const away = getPais(game.away_team_name_en);
+            texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n`;
+        });
 
-      const homeFlag = emojiBandeira(home.code);
-      const awayFlag = emojiBandeira(away.code);
+        message.reply(texto);
 
-      texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n`;
-
-    });
-
-    msg.reply(texto);
-  }
+    } catch (err) {
+        console.log(err);
+        message.reply("Erro ao buscar jogos da copa.");
+    }
+}
     
 
     // =========================
