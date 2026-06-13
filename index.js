@@ -357,57 +357,58 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
-
 // =========================
-// !COPA - SIMPLES E ESTÁVEL
+// !COPA - COPA COMANDOS
 // =========================
 
-if (message.body?.toLowerCase().trim() === "!copa") {
+if (comando === "!copa") {
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games || [];
+const res = await axios.get("https://worldcup26.ir/get/games");  
+const jogos = res.data.games || [];  
 
-    function parseData(str) {
-        if (!str) return null;
-        const d = new Date(str.replace(" ", "T"));
-        return isNaN(d.getTime()) ? null : d;
-    }
+// data atual no formato MM/DD/YYYY  
+const hoje = new Date();  
+const dataHoje =  
+    String(hoje.getMonth() + 1).padStart(2, "0") + "/" +  
+    String(hoje.getDate()).padStart(2, "0") + "/" +  
+    hoje.getFullYear();  
 
-    // 🔥 ordena TODOS os jogos por horário
-    const jogosOrdenados = jogos
-        .map(j => ({
-            ...j,
-            data: parseData(j.local_date)
-        }))
-        .filter(j => j.data)
-        .sort((a, b) => a.data - b.data);
+// filtra apenas jogos do dia  
+const jogosHoje = jogos.filter(j =>  
+    j.local_date?.startsWith(dataHoje)  
+);  
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos)\n\n";
+if (!jogosHoje.length) {  
+    return message.reply("⚽ Nenhum jogo hoje.");  
+}  
 
-    for (const game of jogosOrdenados) {
+let texto = "🏆 Copa do Mundo 2026 (Jogos mais próximos)\n\n";  
 
-        const home = getPais(game.home_team_name_en || "Unknown");
-        const away = getPais(game.away_team_name_en || "Unknown");
+for (const game of jogosHoje) {  
 
-        const homeFlag = emojiBandeira(home.code);
-        const awayFlag = emojiBandeira(away.code);
+    const home = getPais(game.home_team_name_en || "Unknown");  
+    const away = getPais(game.away_team_name_en || "Unknown");  
 
-        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;
+    const homeFlag = emojiBandeira(home.code);  
+    const awayFlag = emojiBandeira(away.code);  
 
-        const finalizado =
-            game.finished === true ||
-            game.finished === "TRUE" ||
-            game.status === "FINISHED";
+    let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;  
 
-        if (finalizado) {
-            linha += `\n${game.home_score} - ${game.away_score}`;
-        }
+    const finalizado =  
+        game.finished === true ||  
+        game.finished === "TRUE" ||  
+        game.status === "FINISHED";  
 
-        texto += linha + "\n\n";
-    }
+    if (finalizado) {  
+        linha += `\n${game.home_score} - ${game.away_score}`;  
+    }  
 
-    return message.reply(texto);
-   }
+    texto += linha + "\n\n";  
+}  
+
+return message.reply(texto);
+
+}
   
     // =========================
     // FM HELP
