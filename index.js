@@ -317,6 +317,91 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
+// =========================
+// COPA LISTA
+// =========================
+
+if (comando === "!copalista") {
+
+    return message.reply(
+`🏆 comandos da copa
+
+!copa → jogos de hoje
+
+mais comandos serão adicionados futuramente`
+    );
+}
+
+
+    // =========================
+// COPA HOJE
+// =========================
+
+if (comando === "!copa") {
+
+    try {
+
+        const hoje = new Date()
+            .toISOString()
+            .slice(0, 10);
+
+        const { data } = await axios.get(
+            "https://v3.football.api-sports.io/fixtures",
+            {
+                headers,
+                params: {
+                    league: 1,
+                    season: 2026,
+                    date: hoje
+                }
+            }
+        );
+
+        const jogos = data.response;
+
+        if (!jogos.length) {
+            return message.reply(
+                "🏆 não há jogos da copa hoje"
+            );
+        }
+
+        let txt = "🏆 jogos da copa hoje\n\n";
+
+        jogos.forEach(jogo => {
+
+            const casa =
+                jogo.teams.home.name;
+
+            const fora =
+                jogo.teams.away.name;
+
+            const hora = new Date(
+                jogo.fixture.date
+            ).toLocaleTimeString(
+                "pt-BR",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
+
+            txt +=
+`${hora} • ${casa} x ${fora}\n`;
+        });
+
+        return message.reply(txt);
+
+    } catch (err) {
+
+        console.log(err);
+
+        return message.reply(
+            "erro ao consultar a copa 😶"
+        );
+    }
+}
+    
+
     // =========================
     // FM HELP
     // =========================
