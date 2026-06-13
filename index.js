@@ -520,7 +520,7 @@ if (comando === "!copagols") {
 
 
   // =========================
-// !COPA FUTUROS (CORRIGIDO)
+// !COPA FUTUROS (VERSÃO ESTÁVEL)
 // =========================
 
 if (comando === "!copaftr") {
@@ -528,49 +528,32 @@ if (comando === "!copaftr") {
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
-    function parseData(dataStr) {
-        if (!dataStr) return null;
-        const d = new Date(dataStr.replace(" ", "T"));
-        return isNaN(d.getTime()) ? null : d;
-    }
-
-    // 📌 hoje sem fuso (base simples e estável)
-    const hoje = new Date();
-    const hojeStr =
-        hoje.getFullYear() + "-" +
-        String(hoje.getMonth() + 1).padStart(2, "0") + "-" +
-        String(hoje.getDate()).padStart(2, "0");
-
-    const futuros = jogos.filter(j => {
+    const validos = jogos.filter(j => {
 
         if (!j.home_team_name_en || !j.away_team_name_en) return false;
 
-        const data = parseData(j.local_date);
-        if (!data) return false;
+        const status = (j.status || "").toUpperCase();
 
         const finalizado =
             j.finished === true ||
             j.finished === "TRUE" ||
-            j.status === "FINISHED";
+            status.includes("FINISHED");
 
-        const dataStr =
-            data.getFullYear() + "-" +
-            String(data.getMonth() + 1).padStart(2, "0") + "-" +
-            String(data.getDate()).padStart(2, "0");
-
-        // 🔥 só jogos depois de hoje OU em dias futuros
-        return dataStr >= hojeStr && !finalizado;
+        return !finalizado;
     });
 
-    futuros.sort((a, b) => parseData(a.local_date) - parseData(b.local_date));
-
-    if (!futuros.length) {
-        return message.reply("📅 Nenhum jogo futuro encontrado.");
+    if (!validos.length) {
+        return message.reply("📅 Nenhum jogo encontrado.");
     }
 
-    let texto = "📅 COPA DO MUNDO 2026 - PRÓXIMOS JOGOS\n\n";
+    // 🔥 ordena pela string original da API (SEM DATE BUG)
+    validos.sort((a, b) =>
+        (a.local_date || "").localeCompare(b.local_date || "")
+    );
 
-    for (const game of futuros) {
+    let texto = "📅 COPA DO MUNDO 2026 - AGENDA COMPLETA\n\n";
+
+    for (const game of validos) {
 
         const home = getPais(game.home_team_name_en);
         const away = getPais(game.away_team_name_en);
@@ -578,17 +561,17 @@ if (comando === "!copaftr") {
         const homeFlag = emojiBandeira(home.code);
         const awayFlag = emojiBandeira(away.code);
 
-        const data = parseData(game.local_date);
+        const dataBruta = game.local_date
+            ? game.local_date.split(" ")[0]
+            : "data desconhecida";
 
-        const dataFormatada = data
-            ? data.toLocaleDateString("pt-BR")
-            : "data não definida";
-
-        texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n📅 ${dataFormatada}\n\n`;
+        texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n📅 ${dataBruta}\n\n`;
     }
 
     return message.reply(texto);
 }
+    
+
   
     // =========================
     // FM HELP
