@@ -334,6 +334,34 @@ mais comandos serão adicionados futuramente`
 }
 
 
+if (comando === "!copateste") {
+
+    try {
+
+        const { data } = await axios.get(
+            "https://v3.football.api-sports.io/standings",
+            {
+                headers,
+                params: {
+                    league: 1,
+                    season: 2026
+                }
+            }
+        );
+
+        return message.reply(
+            `results: ${data.results}`
+        );
+
+    } catch (err) {
+
+        return message.reply(
+            err.message
+        );
+    }
+}
+
+    
     // =========================
 // COPA HOJE
 // =========================
