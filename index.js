@@ -367,17 +367,28 @@ if (message.body.toLowerCase().trim() === "!copa") {
   const res = await axios.get("https://worldcup26.ir/get/games");
   const jogos = res.data.games;
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  // ===== pega HOJE no formato da API =====
+  const hoje = new Date();
+
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const ano = hoje.getFullYear();
+
+  const hojeUS = `${mes}/${dia}/${ano}`; // formato API
 
   let jogosHoje = jogos.filter(j =>
-    j.local_date.split(" ")[0] === hoje
+    j.local_date.startsWith(hojeUS)
   );
 
   jogosHoje.sort((a, b) =>
-    new Date(a.local_date) - new Date(b.local_date)
+    new Date(a.local_date.replace(" ", "T")) - new Date(b.local_date.replace(" ", "T"))
   );
 
   let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+
+  if (jogosHoje.length === 0) {
+    return message.reply("Nenhum jogo hoje.");
+  }
 
   jogosHoje.forEach(game => {
 
@@ -390,9 +401,10 @@ if (message.body.toLowerCase().trim() === "!copa") {
     const homeName = home.nome || game.home_team_name_en;
     const awayName = away.nome || game.away_team_name_en;
 
-    // horário de Brasília
-    const dataJogo = new Date(game.local_date);
-    const horarioBR = dataJogo.toLocaleString("pt-BR", {
+    // horário Brasil
+    const dataJogo = new Date(game.local_date.replace(" ", "T"));
+
+    const horarioBR = dataJogo.toLocaleTimeString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit"
@@ -401,7 +413,7 @@ if (message.body.toLowerCase().trim() === "!copa") {
     let placar = "";
 
     if (game.finished === "TRUE") {
-      placar = `\n${game.home_score} - ${game.away_score}`;
+      placar = `\n🔥 ${game.home_score} - ${game.away_score}`;
     }
 
     texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}
