@@ -366,18 +366,31 @@ if (comando === "!copa") {
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
-    const hoje = new Date();
+    function getHojeBrasil() {
+        const now = new Date(
+            new Date().toLocaleString("en-US", {
+                timeZone: "America/Sao_Paulo"
+            })
+        );
+
+        return {
+            d: now.getDate(),
+            m: now.getMonth(),
+            y: now.getFullYear()
+        };
+    }
+
+    const hoje = getHojeBrasil();
 
     const jogosHoje = jogos.filter(j => {
-
         if (!j.date) return false;
 
         const data = new Date(j.date);
 
         return (
-            data.getFullYear() === hoje.getFullYear() &&
-            data.getMonth() === hoje.getMonth() &&
-            data.getDate() === hoje.getDate()
+            data.getDate() === hoje.d &&
+            data.getMonth() === hoje.m &&
+            data.getFullYear() === hoje.y
         );
     });
 
