@@ -358,7 +358,7 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 // =========================
-// !COPA - CORRIGIDO (FIFA API)
+// !COPA - FIFA (BRASÍLIA UTC OK)
 // =========================
 
 if (comando === "!copa") {
@@ -369,17 +369,36 @@ if (comando === "!copa") {
 
     const jogos = res.data.Results || [];
 
-    // 🔥 usa data do próprio jogo (NÃO UTC do servidor)
-    function getDateKey(dateStr) {
-        const d = new Date(dateStr);
-        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    // 🕒 converte pra horário de Brasília
+    function toBrasilia(dateStr) {
+        return new Date(
+            new Date(dateStr).toLocaleString("en-US", {
+                timeZone: "America/Sao_Paulo"
+            })
+        );
     }
 
-    const hoje = getDateKey(new Date().toISOString());
+    const agora = new Date();
+    const agoraBR = new Date(
+        agora.toLocaleString("en-US", {
+            timeZone: "America/Sao_Paulo"
+        })
+    );
 
+    // 📅 filtra jogos do dia (BRASILIA)
     let jogosHoje = jogos
-        .filter(j => j.Date && getDateKey(j.Date) === hoje)
-        .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        .map(j => ({
+            ...j,
+            data: toBrasilia(j.Date)
+        }))
+        .filter(j => {
+            return (
+                j.data.getDate() === agoraBR.getDate() &&
+                j.data.getMonth() === agoraBR.getMonth() &&
+                j.data.getFullYear() === agoraBR.getFullYear()
+            );
+        })
+        .sort((a, b) => a.data - b.data);
 
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
@@ -389,34 +408,34 @@ if (comando === "!copa") {
 
     for (const game of jogosHoje) {
 
-        // 🔥 EMOJIS CORRIGIDOS (SÓ 2 LETRAS ISO)
-        const homeCode = game.Home?.Abbreviation;
-        const awayCode = game.Away?.Abbreviation;
+        // 🇧🇷 nomes corretos (SEM inglês)
+        const home = game.Home?.TeamName?.[0]?.Description || "Time A";
+        const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+
+        // 🇧🇷 códigos de país (pra emoji certo)
+        const homeCode = game.Home?.IdCountry;
+        const awayCode = game.Away?.IdCountry;
 
         const homeFlag = emojiBandeira(homeCode);
         const awayFlag = emojiBandeira(awayCode);
 
-        const home =
-            game.Home?.TeamName?.[0]?.Description || "Time A";
+        // ⚽ placar
+        const homeScore = game.Home?.Score;
+        const awayScore = game.Away?.Score;
 
-        const away =
-            game.Away?.TeamName?.[0]?.Description || "Time B";
+        // 🕒 minuto do jogo (se tiver)
+        const minute = game.MatchTime || null;
 
         let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
 
-        const status = game.MatchTime;
-
-        if (status && status.includes("'")) {
-            linha += ` 🔴 AO VIVO (${status})`;
+        // 🔴 AO VIVO
+        if (minute) {
+            linha += ` 🔴 AO VIVO (${minute})`;
         }
 
-        const finalizado =
-            game.Home?.Score != null &&
-            game.Away?.Score != null &&
-            !status?.includes("'");
-
-        if (finalizado) {
-            linha += `\n${game.Home.Score} - ${game.Away.Score}`;
+        // 🏁 placar
+        if (homeScore !== null && awayScore !== null) {
+            linha += `\n${homeScore} - ${awayScore}`;
         }
 
         texto += linha + "\n\n";
