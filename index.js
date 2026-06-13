@@ -366,30 +366,26 @@ if (comando === "!copa") {
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
-    function parseData(dataStr) {
-        if (!dataStr) return null;
-        const d = new Date(dataStr.replace(" ", "T"));
-        return isNaN(d.getTime()) ? null : d;
-    }
-
-    // 📅 hoje real (sem string da API)
     const hoje = new Date();
 
     const jogosHoje = jogos.filter(j => {
 
-        const data = parseData(j.local_date);
-        if (!data) return false;
+        if (!j.date) return false;
+
+        const data = new Date(j.date);
 
         return (
-            data.getDate() === hoje.getDate() &&
+            data.getFullYear() === hoje.getFullYear() &&
             data.getMonth() === hoje.getMonth() &&
-            data.getFullYear() === hoje.getFullYear()
+            data.getDate() === hoje.getDate()
         );
     });
 
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
     }
+
+    jogosHoje.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
