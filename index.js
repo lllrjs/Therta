@@ -361,33 +361,52 @@ client.on('message', async message => {
 // =========================
 // COPA - COMANDO !COPA
 // =========================
-
+  
 if (comando === "!copa") {
-    try {
-        const res = await axios.get("https://worldcup26.ir/get/games");
-        const jogos = res.data.games;
 
-        let texto = "🏆 Copa do Mundo 2026\n\n";
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games;
 
-        jogos.forEach(game => {
-            const home = getPais(game.home_team_name_en);
-            const away = getPais(game.away_team_name_en);
+    // data atual no formato MM/DD/YYYY
+    const hoje = new Date();
+    const dataHoje =
+        String(hoje.getMonth() + 1).padStart(2, "0") + "/" +
+        String(hoje.getDate()).padStart(2, "0") + "/" +
+        hoje.getFullYear();
 
-            const homeFlag = emojiBandeira(home.code);
-            const awayFlag = emojiBandeira(away.code);
+    // filtra apenas jogos do dia
+    const jogosHoje = jogos.filter(j =>
+        j.local_date.startsWith(dataHoje)
+    );
 
-            texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n`;
-        });
-
-        message.reply(texto);
-
-    } catch (err) {
-        console.log(err);
-        message.reply("Erro ao buscar jogos da copa.");
+    if (!jogosHoje.length) {
+        return message.reply("⚽ Nenhum jogo hoje.");
     }
-}
-    
 
+    let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+
+    for (const game of jogosHoje) {
+
+        const home = getPais(game.home_team_name_en);
+        const away = getPais(game.away_team_name_en);
+
+        const homeFlag = emojiBandeira(home.code);
+        const awayFlag = emojiBandeira(away.code);
+
+        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;
+
+        // se terminou, mostra placar
+        if (game.finished === "TRUE") {
+            linha += `\n🔥 ${game.home_score} - ${game.away_score}`;
+        }
+
+        texto += linha + "\n\n";
+    }
+
+    return message.reply(texto);
+}
+
+  
     // =========================
     // FM HELP
     // =========================
