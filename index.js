@@ -361,49 +361,54 @@ client.on('message', async message => {
 // =========================
 // COPA - COMANDO !COPA
 // =========================
-  
-if (comando === "!copa") {
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games;
+if (msg.body === "!copa") {
 
-    // data atual no formato MM/DD/YYYY
-    const hoje = new Date();
-    const dataHoje =
-        String(hoje.getMonth() + 1).padStart(2, "0") + "/" +
-        String(hoje.getDate()).padStart(2, "0") + "/" +
-        hoje.getFullYear();
+  const res = await axios.get("https://worldcup26.ir/get/games");
+  const jogos = res.data.games;
 
-    // filtra apenas jogos do dia
-    const jogosHoje = jogos.filter(j =>
-        j.local_date.startsWith(dataHoje)
-    );
+  const hoje = new Date().toISOString().slice(0, 10);
 
-    if (!jogosHoje.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
+  let jogosHoje = jogos.filter(j =>
+    j.local_date.split(" ")[0] === hoje
+  );
+
+  jogosHoje.sort((a, b) =>
+    new Date(a.local_date) - new Date(b.local_date)
+  );
+
+  let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+
+  jogosHoje.forEach(game => {
+
+    const home = getPais(game.home_team_name_en || "Unknown");
+    const away = getPais(game.away_team_name_en || "Unknown");
+
+    const homeFlag = emojiBandeira(home.code);
+    const awayFlag = emojiBandeira(away.code);
+
+    const homeName = home.nome || game.home_team_name_en;
+    const awayName = away.nome || game.away_team_name_en;
+
+    // horário de Brasília
+    const dataJogo = new Date(game.local_date);
+    const horarioBR = dataJogo.toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    let placar = "";
+
+    if (game.finished === "TRUE") {
+      placar = `\n${game.home_score} - ${game.away_score}`;
     }
 
-    let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+    texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}
+🕒 ${horarioBR}${placar}\n\n`;
+  });
 
-    for (const game of jogosHoje) {
-
-        const home = getPais(game.home_team_name_en);
-        const away = getPais(game.away_team_name_en);
-
-        const homeFlag = emojiBandeira(home.code);
-        const awayFlag = emojiBandeira(away.code);
-
-        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;
-
-        // se terminou, mostra placar
-        if (game.finished === "TRUE") {
-            linha += `\n🔥 ${game.home_score} - ${game.away_score}`;
-        }
-
-        texto += linha + "\n\n";
-    }
-
-    return message.reply(texto);
+  msg.reply(texto);
 }
 
   
