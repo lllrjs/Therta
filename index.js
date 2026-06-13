@@ -372,11 +372,14 @@ if (comando === "!copa") {
 function emojiBandeira(code = "") {
     if (!code) return "🏳️";
 
-    return code
+    const iso2 = code
         .toUpperCase()
-        .replace(/./g, char =>
-            String.fromCodePoint(127397 + char.charCodeAt())
-        );
+        .slice(0, 2); // 🔥 TRUQUE SIMPLES
+
+    return iso2
+        .split("")
+        .map(c => String.fromCodePoint(127397 + c.charCodeAt()))
+        .join("");
 }
   
     // 🕒 converte pra horário de Brasília
