@@ -339,13 +339,18 @@ if (comando === "!copateste") {
     try {
 
         const { data } = await axios.get(
-            "https://v3.football.api-sports.io/status",
-            { headers }
+            "https://v3.football.api-sports.io/fixtures",
+            {
+                headers,
+                params: {
+                    league: 71, // Brasileirão Série A
+                    season: 2026
+                }
+            }
         );
 
         return message.reply(
-            JSON.stringify(data.response, null, 2)
-                .slice(0, 1500)
+            `results: ${data.results}`
         );
 
     } catch (err) {
