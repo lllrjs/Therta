@@ -8,7 +8,8 @@ const sharp = require('sharp');
 const path = require('path');
 const API_KEY = "8a7c498e36d42b13bc4257b88f6efedd";
 const headers = {
-    "x-apisports-key": API_KEY
+    "x-apisports-key": API_KEY,
+    "x-apisports-host": "v3.football.api-sports.io"
 };
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
