@@ -366,43 +366,29 @@ if (comando === "!copa") {
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
-    function getHojeBrasil() {
-        const now = new Date(
-            new Date().toLocaleString("en-US", {
-                timeZone: "America/Sao_Paulo"
-            })
-        );
-
-        return {
-            d: now.getDate(),
-            m: now.getMonth(),
-            y: now.getFullYear()
-        };
+    function parseDate(d) {
+        if (!d) return null;
+        const x = new Date(d);
+        return isNaN(x.getTime()) ? null : x;
     }
 
-    const hoje = getHojeBrasil();
+    const validos = jogos
+        .map(j => ({
+            ...j,
+            data: parseDate(j.date)
+        }))
+        .filter(j => j.data);
 
-    const jogosHoje = jogos.filter(j => {
-        if (!j.date) return false;
+    // 🔥 ordena direto pelo horário da API
+    validos.sort((a, b) => a.data - b.data);
 
-        const data = new Date(j.date);
-
-        return (
-            data.getDate() === hoje.d &&
-            data.getMonth() === hoje.m &&
-            data.getFullYear() === hoje.y
-        );
-    });
-
-    if (!jogosHoje.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
+    if (!validos.length) {
+        return message.reply("⚽ Nenhum jogo encontrado.");
     }
 
-    jogosHoje.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let texto = "🏆 Copa do Mundo 2026 (Todos os jogos)\n\n";
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
-
-    for (const game of jogosHoje) {
+    for (const game of validos) {
 
         const home = getPais(game.home_team_name_en || "Unknown");
         const away = getPais(game.away_team_name_en || "Unknown");
@@ -426,7 +412,6 @@ if (comando === "!copa") {
 
     return message.reply(texto);
 }
-
 // =========================
 // !COPA AO VIVO (COM MINUTO)
 // =========================
