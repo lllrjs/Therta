@@ -363,96 +363,50 @@ client.on('message', async message => {
 
 if (comando === "!copa") {
 
-    const res = await axios.get(
-        "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
-    );
+  const res = await axios.get(
+    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  );
 
-    const jogos = res.data.Results || [];
+  const jogos = res.data.Results || [];
 
-    // 🏳️ bandeira por código ISO (BR, QA, US, etc)
-    function emojiBandeira(code = "") {
-    if (!code) return "🏳️";
+  const agora = new Date();
 
-    const clean = code
-        .toUpperCase()
-        .replace(/[^A-Z]/g, "") // 🔥 remove tudo que não é letra
-        .slice(0, 3);           // garante máximo 3 letras
+  let jogosHoje = jogos
+    .filter(j => {
+      const data = new Date(j.Date);
+      return (
+        data.getUTCDate() === agora.getUTCDate() &&
+        data.getUTCMonth() === agora.getUTCMonth() &&
+        data.getUTCFullYear() === agora.getUTCFullYear()
+      );
+    })
+    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-    if (clean.length < 2) return "🏳️";
+  let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-    return clean
-        .slice(0, 2) // ⚠️ emoji usa 2 letras na prática
-        .split("")
-        .map(c => String.fromCodePoint(127397 + c.charCodeAt()))
-        .join("");
+  for (const game of jogosHoje) {
+
+    const home = game.Home?.TeamName?.[0]?.Description;
+    const away = game.Away?.TeamName?.[0]?.Description;
+
+    const homeScore = game.HomeTeamScore;
+    const awayScore = game.AwayTeamScore;
+
+    let linha = `⚽ ${home} vs ${away}`;
+
+    if (isLive(game)) {
+      linha += ` 🔴 AO VIVO (${game.MatchTime || ""})`;
     }
 
-    // 🕒 converter UTC → Brasília
-    function toBrasilia(dateStr) {
-        return new Date(
-            new Date(dateStr).toLocaleString("en-US", {
-                timeZone: "America/Sao_Paulo"
-            })
-        );
+    if (homeScore !== null && awayScore !== null) {
+      linha += `\n${homeScore} - ${awayScore}`;
     }
 
-    const agoraBR = new Date(
-        new Date().toLocaleString("en-US", {
-            timeZone: "America/Sao_Paulo"
-        })
-    );
+    texto += linha + "\n\n";
+  }
 
-    // 📅 filtra jogos do dia (BR)
-    const jogosHoje = jogos
-        .map(j => ({
-            ...j,
-            data: toBrasilia(j.Date)
-        }))
-        .filter(j =>
-            j.data.getDate() === agoraBR.getDate() &&
-            j.data.getMonth() === agoraBR.getMonth() &&
-            j.data.getFullYear() === agoraBR.getFullYear()
-        )
-        .sort((a, b) => a.data - b.data);
-
-    if (!jogosHoje.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
-    }
-
-    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
-
-    for (const game of jogosHoje) {
-
-        // 🏳️ nomes corretos (FIFA)
-        const home = game.Home?.TeamName?.[0]?.Description || "Time A";
-        const away = game.Away?.TeamName?.[0]?.Description || "Time B";
-
-        // 🏳️ códigos ISO reais
-        const homeFlag = emojiBandeira(game.Home?.IdCountry);
-        const awayFlag = emojiBandeira(game.Away?.IdCountry);
-
-        const homeScore = game.Home?.Score;
-        const awayScore = game.Away?.Score;
-
-        const minute = game.MatchTime || null;
-
-        let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
-
-        // 🔴 AO VIVO
-        if (minute) {
-            linha += ` 🔴 AO VIVO (${minute})`;
-        }
-
-        // ⚽ placar
-        if (homeScore !== null && awayScore !== null) {
-            linha += `\n${homeScore} - ${awayScore}`;
-        }
-
-        texto += linha + "\n\n";
-    }
-
-    return message.reply(texto);
-}
+  return message.reply(texto);
+      }
   
 // =========================
 // !COPA AO VIVO (COM MINUTO)
@@ -466,24 +420,8 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
 
   const jogos = res.data.Results || [];
 
-  function emojiBandeira(code = "") {
-    if (!code) return "🏳️";
-
-    const c = code.toUpperCase().slice(0, 2);
-
-    return c
-      .split("")
-      .map(l => String.fromCodePoint(127397 + l.charCodeAt()))
-      .join("");
-  }
-
   const aoVivo = jogos
-    .filter(j => {
-      const hasMinute = j.MatchTime && j.MatchTime.includes("'");
-      const notFinished = j.HomeTeamScore !== null && j.AwayTeamScore !== null;
-
-      return hasMinute && !notFinished;
-    })
+    .filter(isLive)
     .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
   if (!aoVivo.length) {
@@ -494,22 +432,16 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
 
   for (const game of aoVivo) {
 
-    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
-    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+    const home = game.Home?.TeamName?.[0]?.Description;
+    const away = game.Away?.TeamName?.[0]?.Description;
 
-    const homeFlag = emojiBandeira(game.Home?.IdCountry);
-    const awayFlag = emojiBandeira(game.Away?.IdCountry);
+    const homeScore = game.HomeTeamScore;
+    const awayScore = game.AwayTeamScore;
 
-    const homeScore = game.Home?.Score ?? 0;
-    const awayScore = game.Away?.Score ?? 0;
+    const minute = game.MatchTime || "";
 
-    const minute = game.MatchTime || "0'";
-
-    let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
-    linha += ` 🔴 AO VIVO (${minute})`;
-    linha += `\n${homeScore} - ${awayScore}`;
-
-    texto += linha + "\n\n";
+    texto += `⚽ ${home} vs ${away}\n`;
+    texto += `${homeScore} - ${awayScore} 🔴 AO VIVO (${minute})\n\n`;
   }
 
   return message.reply(texto);
