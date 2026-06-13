@@ -468,6 +468,7 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
 
   function emojiBandeira(code = "") {
     if (!code) return "🏳️";
+
     const c = code.toUpperCase().slice(0, 2);
 
     return c
@@ -477,12 +478,12 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
   }
 
   const aoVivo = jogos
-    const aoVivo = jogos.filter(j => {
-  const hasMinute = j.MatchTime && j.MatchTime.includes("'");
-  const notFinished = j.HomeTeamScore !== null && j.AwayTeamScore !== null;
+    .filter(j => {
+      const hasMinute = j.MatchTime && j.MatchTime.includes("'");
+      const notFinished = j.HomeTeamScore !== null && j.AwayTeamScore !== null;
 
-  return hasMinute && !notFinished;
-});
+      return hasMinute && !notFinished;
+    })
     .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
   if (!aoVivo.length) {
