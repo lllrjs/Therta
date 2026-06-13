@@ -358,40 +358,33 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 
-
-  // =========================
-// !COPA
+// =========================
+// !COPA - SIMPLES E ESTÁVEL
 // =========================
 
-if (comando === "!copa") {
+if (message.body?.toLowerCase().trim() === "!copa") {
 
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
-    function parseData(dataStr) {
-        if (!dataStr) return null;
-        const d = new Date(dataStr.replace(" ", "T"));
+    function parseData(str) {
+        if (!str) return null;
+        const d = new Date(str.replace(" ", "T"));
         return isNaN(d.getTime()) ? null : d;
     }
 
-    const hoje = new Date();
-
-    let jogosHoje = jogos
+    // 🔥 ordena TODOS os jogos por horário
+    const jogosOrdenados = jogos
         .map(j => ({
             ...j,
             data: parseData(j.local_date)
         }))
         .filter(j => j.data)
-        .filter(j =>
-            j.data.getFullYear() === hoje.getFullYear() &&
-            j.data.getMonth() === hoje.getMonth() &&
-            j.data.getDate() === hoje.getDate()
-        )
         .sort((a, b) => a.data - b.data);
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
+    let texto = "🏆 Copa do Mundo 2026 (Jogos)\n\n";
 
-    for (const game of jogosHoje) {
+    for (const game of jogosOrdenados) {
 
         const home = getPais(game.home_team_name_en || "Unknown");
         const away = getPais(game.away_team_name_en || "Unknown");
@@ -407,14 +400,14 @@ if (comando === "!copa") {
             game.status === "FINISHED";
 
         if (finalizado) {
-            linha += `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
+            linha += `\n${game.home_score} - ${game.away_score}`;
         }
 
         texto += linha + "\n\n";
     }
 
     return message.reply(texto);
-}
+   }
   
     // =========================
     // FM HELP
