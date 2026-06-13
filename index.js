@@ -362,8 +362,6 @@ client.on('message', async message => {
 // COPA - COMANDO !COPA
 // =========================
 
-client.on("message", async (msg) => {
-
   if (msg.body === "!copa") {
 
     const res = await axios.get("https://worldcup26.ir/get/games");
@@ -385,7 +383,6 @@ client.on("message", async (msg) => {
 
     msg.reply(texto);
   }
-});
     
 
     // =========================
