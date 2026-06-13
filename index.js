@@ -359,7 +359,7 @@ if (comando === "!copateste") {
     }
 }
 
-if (comando === "!copateste2") {
+if (comando === "!apiteste") {
 
     try {
 
@@ -368,18 +368,27 @@ if (comando === "!copateste2") {
             {
                 headers,
                 params: {
-                    id: 66456928
+                    league: 71,
+                    season: 2026
                 }
             }
         );
 
         return message.reply(
-            `results: ${data.results}`
+            JSON.stringify({
+                results: data.results,
+                errors: data.errors,
+                paging: data.paging
+            }, null, 2)
         );
 
     } catch (err) {
 
-        return message.reply(err.message);
+        return message.reply(
+            err.response?.data
+                ? JSON.stringify(err.response.data)
+                : err.message
+        );
     }
 }
     
