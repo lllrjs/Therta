@@ -49,6 +49,13 @@ function emojiBandeira(countryCode) {
     );
 }
 
+// =========================
+// FUNÇÃO AO VIVO (LOCAL)
+// =========================
+function isLive(game) {
+  const status = game.MatchStatus;
+  return status === 1 || status === 2;
+}
 
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
@@ -357,96 +364,7 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
-// =========================
-// !COPA - FIFA (SIMPLIFICADO + BRASIL)
-// =========================
-
-if (comando === "!copa") {
-
-  const res = await axios.get(
-    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
-  );
-
-  const jogos = res.data.Results || [];
-
-  const agora = new Date();
-
-  let jogosHoje = jogos
-    .filter(j => {
-      const data = new Date(j.Date);
-      return (
-        data.getUTCDate() === agora.getUTCDate() &&
-        data.getUTCMonth() === agora.getUTCMonth() &&
-        data.getUTCFullYear() === agora.getUTCFullYear()
-      );
-    })
-    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-  let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
-
-  for (const game of jogosHoje) {
-
-    const home = game.Home?.TeamName?.[0]?.Description;
-    const away = game.Away?.TeamName?.[0]?.Description;
-
-    const homeScore = game.HomeTeamScore;
-    const awayScore = game.AwayTeamScore;
-
-    let linha = `⚽ ${home} vs ${away}`;
-
-    if (isLive(game)) {
-      linha += ` 🔴 AO VIVO (${game.MatchTime || ""})`;
-    }
-
-    if (homeScore !== null && awayScore !== null) {
-      linha += `\n${homeScore} - ${awayScore}`;
-    }
-
-    texto += linha + "\n\n";
-  }
-
-  return message.reply(texto);
-      }
   
-// =========================
-// !COPA AO VIVO (COM MINUTO)
-// =========================
-
-if ((message.body || "").toLowerCase().trim() === "!copalive") {
-
-  const res = await axios.get(
-    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
-  );
-
-  const jogos = res.data.Results || [];
-
-  const aoVivo = jogos
-    .filter(isLive)
-    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-  if (!aoVivo.length) {
-    return message.reply("⚽ Nenhum jogo ao vivo agora.");
-  }
-
-  let texto = "🔴 COPA DO MUNDO 2026 (AO VIVO)\n\n";
-
-  for (const game of aoVivo) {
-
-    const home = game.Home?.TeamName?.[0]?.Description;
-    const away = game.Away?.TeamName?.[0]?.Description;
-
-    const homeScore = game.HomeTeamScore;
-    const awayScore = game.AwayTeamScore;
-
-    const minute = game.MatchTime || "";
-
-    texto += `⚽ ${home} vs ${away}\n`;
-    texto += `${homeScore} - ${awayScore} 🔴 AO VIVO (${minute})\n\n`;
-  }
-
-  return message.reply(texto);
-}
-
 // =========================
 // !COPA ACABADOS (RESULTADOS FINAIS)
 // =========================
@@ -491,6 +409,92 @@ if (comando === "!copagols") {
     return message.reply(texto);
 }
 
+  // =========================
+// !COPA
+// =========================
+if (comando === "!copa") {
+
+  const res = await axios.get(
+    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  );
+
+  const jogos = res.data.Results || [];
+
+  const agora = new Date();
+
+  let jogosHoje = jogos
+    .filter(j => {
+      const data = new Date(j.Date);
+      return (
+        data.getUTCDate() === agora.getUTCDate() &&
+        data.getUTCMonth() === agora.getUTCMonth() &&
+        data.getUTCFullYear() === agora.getUTCFullYear()
+      );
+    })
+    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+  let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
+
+  for (const game of jogosHoje) {
+
+    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
+    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+
+    const homeScore = game.HomeTeamScore;
+    const awayScore = game.AwayTeamScore;
+
+    let linha = `⚽ ${home} vs ${away}`;
+
+    if (isLive(game)) {
+      linha += ` 🔴 AO VIVO (${game.MatchTime || ""})`;
+    }
+
+    if (homeScore !== null && awayScore !== null) {
+      linha += `\n${homeScore} - ${awayScore}`;
+    }
+
+    texto += linha + "\n\n";
+  }
+
+  return message.reply(texto);
+}
+  // =========================
+// !COPALIVE
+// =========================
+if ((message.body || "").toLowerCase().trim() === "!copalive") {
+
+  const res = await axios.get(
+    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  );
+
+  const jogos = res.data.Results || [];
+
+  const aoVivo = jogos
+    .filter(isLive)
+    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+  if (!aoVivo.length) {
+    return message.reply("⚽ Nenhum jogo ao vivo agora.");
+  }
+
+  let texto = "🔴 COPA DO MUNDO 2026 (AO VIVO)\n\n";
+
+  for (const game of aoVivo) {
+
+    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
+    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+
+    const homeScore = game.HomeTeamScore ?? 0;
+    const awayScore = game.AwayTeamScore ?? 0;
+
+    const minute = game.MatchTime || "";
+
+    texto += `⚽ ${home} vs ${away}\n`;
+    texto += `${homeScore} - ${awayScore} 🔴 AO VIVO (${minute})\n\n`;
+  }
+
+  return message.reply(texto);
+}
 
   // =========================
 // !COPA FUTUROS (VERSÃO ESTÁVEL)
