@@ -339,12 +339,31 @@ if (comando === "!copateste") {
     try {
 
         const { data } = await axios.get(
+            "https://v3.football.api-sports.io/status",
+            { headers }
+        );
+
+        return message.reply(
+            JSON.stringify(data.response, null, 2)
+                .slice(0, 1500)
+        );
+
+    } catch (err) {
+
+        return message.reply(err.message);
+    }
+}
+
+if (comando === "!copateste2") {
+
+    try {
+
+        const { data } = await axios.get(
             "https://v3.football.api-sports.io/fixtures",
             {
                 headers,
                 params: {
-                    league: 1,
-                    season: 2026
+                    id: 66456928
                 }
             }
         );
@@ -358,6 +377,7 @@ if (comando === "!copateste") {
         return message.reply(err.message);
     }
 }
+    
 
     
     // =========================
