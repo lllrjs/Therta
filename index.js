@@ -372,22 +372,33 @@ if (comando === "!copa") {
         return isNaN(d.getTime()) ? null : d;
     }
 
-    // data atual no formato MM/DD/YYYY (mantido como você tinha)
-    const hoje = new Date();
-    const dataHoje =
-        String(hoje.getMonth() + 1).padStart(2, "0") + "/" +
-        String(hoje.getDate()).padStart(2, "0") + "/" +
-        hoje.getFullYear();
+    // =========================
+// DATA SEGURA (IGNORA FUSO)
+// =========================
 
-    // filtra jogos do dia
-    let jogosHoje = jogos
-        .filter(j => j.local_date?.startsWith(dataHoje))
-        .map(j => ({
-            ...j,
-            data: parseData(j.local_date)
-        }))
-        .filter(j => j.data);
+function parseData(dataStr) {
+    if (!dataStr) return null;
+    const d = new Date(dataStr.replace(" ", "T"));
+    return isNaN(d.getTime()) ? null : d;
+}
 
+// hoje em "dia real do servidor"
+const hoje = new Date();
+
+let jogosHoje = jogos
+    .map(j => ({
+        ...j,
+        data: parseData(j.local_date)
+    }))
+    .filter(j => j.data)
+    .filter(j => {
+        return (
+            j.data.getFullYear() === hoje.getFullYear() &&
+            j.data.getMonth() === hoje.getMonth() &&
+            j.data.getDate() === hoje.getDate()
+        );
+    });
+  
     // se não tiver jogos
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
