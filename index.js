@@ -18,15 +18,35 @@ countries.registerLocale(require("i18n-iso-countries/langs/en.json"));
 
 
 // =========================
-// COPA - TRADUTOR DE PAÍSES
+// COPA - TRADUTOR + CÓDIGO
 // =========================
 
-function traduzirPais(nome) {
+function getPais(nome) {
   const code = countries.getAlpha2Code(nome, "en");
 
-  if (!code) return nome;
+  if (!code) return { nome, code: null };
 
-  return countries.getName(code, "pt", { select: "official" }) || nome;
+  const nomePt =
+    countries.getName(code, "pt", { select: "official" }) || nome;
+
+  return {
+    nome: nomePt,
+    code
+  };
+}
+
+// =========================
+// COPA - BANDEIRAS (EMOJI)
+// =========================
+
+function emojiBandeira(countryCode) {
+  if (!countryCode) return "";
+
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, char =>
+      String.fromCodePoint(127397 + char.charCodeAt())
+    );
 }
 
 
@@ -338,7 +358,34 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 
+// =========================
+// COPA - COMANDO !COPA
+// =========================
 
+client.on("message", async (msg) => {
+
+  if (msg.body === "!copa") {
+
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games;
+
+    let texto = "🏆 Copa do Mundo 2026\n\n";
+
+    jogos.forEach(game => {
+
+      const home = getPais(game.home_team_name_en);
+      const away = getPais(game.away_team_name_en);
+
+      const homeFlag = emojiBandeira(home.code);
+      const awayFlag = emojiBandeira(away.code);
+
+      texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n`;
+
+    });
+
+    msg.reply(texto);
+  }
+});
     
 
     // =========================
