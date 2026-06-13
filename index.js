@@ -358,29 +358,48 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 
+// =========================
+// COPA - COMANDO !COPA (JOGOS DO DIA)
+// =========================
+
 if (message.body?.toLowerCase().trim() === "!copa") {
 
   const res = await axios.get("https://worldcup26.ir/get/games");
   const jogos = res.data.games || [];
 
-  const hoje = new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Sao_Paulo"
-  });
+  function parseData(dataStr) {
+    if (!dataStr) return null;
 
-  const parse = (d) => new Date(d?.replace(" ", "T"));
+    const d = new Date(dataStr.replace(" ", "T"));
+    return isNaN(d.getTime()) ? null : d;
+  }
 
-  let jogosHoje = jogos.filter(j => {
-    if (!j.local_date) return false;
-    return j.local_date.slice(0, 10) === hoje;
-  });
+  // 🟢 pega HOJE no horário do Brasil
+  const hojeBR = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+  ).toISOString().slice(0, 10);
 
-  jogosHoje.sort((a, b) => parse(a.local_date) - parse(b.local_date));
+  const jogosHoje = jogos
+    .map(j => ({
+      ...j,
+      data: parseData(j.local_date)
+    }))
+    .filter(j => {
+      if (!j.data) return false;
+
+      const dataISO = new Date(
+        j.data.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+      ).toISOString().slice(0, 10);
+
+      return dataISO === hojeBR;
+    })
+    .sort((a, b) => a.data - b.data);
 
   if (jogosHoje.length === 0) {
     return message.reply("🏆 Copa do Mundo 2026\n\nNenhum jogo hoje.");
   }
 
-  let texto = "🏆 Copa do Mundo 2026 (Hoje - Brasília)\n\n";
+  let texto = "🏆 Copa do Mundo 2026 (Mais próximos)\n\n";
 
   for (const game of jogosHoje) {
 
@@ -390,23 +409,27 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     const homeFlag = emojiBandeira(home.code);
     const awayFlag = emojiBandeira(away.code);
 
-    const data = parse(game.local_date);
+    const homeName = home.nome;
+    const awayName = away.nome;
 
-    const horarioBR = !isNaN(data)
-      ? data.toLocaleTimeString("pt-BR", {
-          timeZone: "America/Sao_Paulo",
-          hour: "2-digit",
-          minute: "2-digit"
-        })
-      : "??:??";
+    const horarioBR = game.data.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
 
     let placar = "";
 
-    if (game.finished === true || game.finished === "TRUE") {
-      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
+    const finalizado =
+      game.finished === true ||
+      game.finished === "TRUE" ||
+      game.status === "FINISHED";
+
+    if (finalizado) {
+      placar = `\n${game.home_score} - ${game.away_score}`;
     }
 
-    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
+    texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
   }
 
   message.reply(texto);
