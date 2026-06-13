@@ -372,14 +372,14 @@ if (comando === "!copa") {
         return isNaN(d.getTime()) ? null : d;
     }
 
-    // data atual no formato MM/DD/YYYY
+    // data atual no formato MM/DD/YYYY (mantido como você tinha)
     const hoje = new Date();
     const dataHoje =
         String(hoje.getMonth() + 1).padStart(2, "0") + "/" +
         String(hoje.getDate()).padStart(2, "0") + "/" +
         hoje.getFullYear();
 
-    // filtra jogos do dia + adiciona objeto data
+    // filtra jogos do dia
     let jogosHoje = jogos
         .filter(j => j.local_date?.startsWith(dataHoje))
         .map(j => ({
@@ -388,11 +388,12 @@ if (comando === "!copa") {
         }))
         .filter(j => j.data);
 
+    // se não tiver jogos
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
     }
 
-    // 🔥 ORDENAÇÃO CORRETA (AQUI ESTAVA O ERRO)
+    // 🔥 ORDENAR POR HORÁRIO (CORRETO)
     jogosHoje.sort((a, b) => a.data - b.data);
 
     let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
