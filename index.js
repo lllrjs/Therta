@@ -366,6 +366,12 @@ if (comando === "!copa") {
     const res = await axios.get("https://worldcup26.ir/get/games");
     const jogos = res.data.games || [];
 
+    function parseData(dataStr) {
+        if (!dataStr) return null;
+        const d = new Date(dataStr.replace(" ", "T"));
+        return isNaN(d.getTime()) ? null : d;
+    }
+
     // data atual no formato MM/DD/YYYY
     const hoje = new Date();
     const dataHoje =
@@ -373,16 +379,23 @@ if (comando === "!copa") {
         String(hoje.getDate()).padStart(2, "0") + "/" +
         hoje.getFullYear();
 
-    // filtra apenas jogos do dia
-    const jogosHoje = jogos.filter(j =>
-        j.local_date?.startsWith(dataHoje)
-    );
+    // filtra jogos do dia + adiciona objeto data
+    let jogosHoje = jogos
+        .filter(j => j.local_date?.startsWith(dataHoje))
+        .map(j => ({
+            ...j,
+            data: parseData(j.local_date)
+        }))
+        .filter(j => j.data);
 
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
     }
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos mais próximos)\n\n";
+    // 🔥 ORDENAÇÃO CORRETA (AQUI ESTAVA O ERRO)
+    jogosHoje.sort((a, b) => a.data - b.data);
+
+    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
     for (const game of jogosHoje) {
 
