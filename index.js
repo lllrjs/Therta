@@ -358,7 +358,7 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 // =========================
-// !COPA - COPA COMANDOS
+// !COPA - CORRIGIDO (FIFA API)
 // =========================
 
 if (comando === "!copa") {
@@ -369,14 +369,13 @@ if (comando === "!copa") {
 
     const jogos = res.data.Results || [];
 
-    // data de hoje (ISO)
-    const hoje = new Date().toISOString().slice(0, 10);
+    // 🔥 HOJE EM UTC (CORRETO PARA FIFA)
+    const hojeISO = new Date().toISOString().slice(0, 10);
 
-    // filtra jogos do dia
-    const jogosHoje = jogos.filter(j => {
-        if (!j.Date) return false;
-        return j.Date.slice(0, 10) === hoje;
-    });
+    // filtra jogos do dia corretamente
+    let jogosHoje = jogos
+        .filter(j => j.Date && j.Date.slice(0, 10) === hojeISO)
+        .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
     if (!jogosHoje.length) {
         return message.reply("⚽ Nenhum jogo hoje.");
@@ -386,17 +385,40 @@ if (comando === "!copa") {
 
     for (const game of jogosHoje) {
 
-        const home = game.Home?.TeamName?.[0]?.Description || "Time A";
-        const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+        // 🔥 usa código direto da FIFA (SEM getPais quebrando)
+        const homeCode = game.Home?.IdCountry;
+        const awayCode = game.Away?.IdCountry;
 
-        const score = `${game.Home?.Score ?? 0} - ${game.Away?.Score ?? 0}`;
+        const homeName =
+            game.Home?.TeamName?.[0]?.Description ||
+            game.Home?.ShortClubName ||
+            "Time A";
 
-        const finalizado = game.MatchTime?.includes("'") === false;
+        const awayName =
+            game.Away?.TeamName?.[0]?.Description ||
+            game.Away?.ShortClubName ||
+            "Time B";
 
-        let linha = `⚽ ${home} vs ${away}`;
+        const homeFlag = emojiBandeira(homeCode);
+        const awayFlag = emojiBandeira(awayCode);
 
-        if (finalizado && game.Home?.Score != null) {
-            linha += `\n${score}`;
+        let linha = `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}`;
+
+        const status = game.MatchTime;
+
+        // 🔴 AO VIVO
+        if (status && status.includes("'")) {
+            linha += ` 🔴 AO VIVO (${status})`;
+        }
+
+        // 🏁 FINALIZADO
+        const finalizado =
+            game.Home?.Score != null &&
+            game.Away?.Score != null &&
+            !status?.includes("'");
+
+        if (finalizado) {
+            linha += `\n${game.Home.Score} - ${game.Away.Score}`;
         }
 
         texto += linha + "\n\n";
