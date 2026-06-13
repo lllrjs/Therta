@@ -371,13 +371,20 @@ if (comando === "!copa") {
 
     // 🏳️ bandeira por código ISO (BR, QA, US, etc)
     function emojiBandeira(code = "") {
-        if (!code) return "🏳️";
+    if (!code) return "🏳️";
 
-        return code
-            .toUpperCase()
-            .replace(/./g, c =>
-                String.fromCodePoint(127397 + c.charCodeAt())
-            );
+    const clean = code
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "") // 🔥 remove tudo que não é letra
+        .slice(0, 3);           // garante máximo 3 letras
+
+    if (clean.length < 2) return "🏳️";
+
+    return clean
+        .slice(0, 2) // ⚠️ emoji usa 2 letras na prática
+        .split("")
+        .map(c => String.fromCodePoint(127397 + c.charCodeAt()))
+        .join("");
     }
 
     // 🕒 converter UTC → Brasília
