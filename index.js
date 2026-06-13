@@ -409,6 +409,71 @@ for (const game of jogosHoje) {
 return message.reply(texto);
 
 }
+
+// =========================
+// !COPA AO VIVO (COM MINUTO)
+// =========================
+
+if (comando === "!copalive") {
+
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games || [];
+
+    const aoVivo = jogos.filter(j => {
+
+        const status = (j.status || "").toUpperCase();
+
+        return (
+            status.includes("LIVE") ||
+            status.includes("IN PLAY") ||
+            status.includes("ONGOING") ||
+            j.finished === false ||
+            j.is_live === true
+        );
+    });
+
+    if (!aoVivo.length) {
+        return message.reply("⚽ Nenhum jogo ao vivo no momento.");
+    }
+
+    let texto = "🔴 COPA AO VIVO\n\n";
+
+    for (const game of aoVivo) {
+
+        const home = getPais(game.home_team_name_en || "Unknown");
+        const away = getPais(game.away_team_name_en || "Unknown");
+
+        const homeFlag = emojiBandeira(home.code);
+        const awayFlag = emojiBandeira(away.code);
+
+        const homeScore = game.home_score ?? 0;
+        const awayScore = game.away_score ?? 0;
+
+        // =========================
+        // ⏱ MINUTO DO JOGO (vários formatos)
+        // =========================
+        let minuto =
+            game.elapsed ??
+            game.minute ??
+            game.time?.elapsed ??
+            game.status_time ??
+            null;
+
+        if (typeof minuto === "string") {
+            // tenta extrair número tipo "67'" ou "67 min"
+            const match = minuto.match(/\d+/);
+            minuto = match ? match[0] : null;
+        }
+
+        const minutoTexto = minuto ? `${minuto}'` : "AO VIVO";
+
+        texto += `${homeFlag} ${home.nome} ${homeScore} x ${awayScore} ${away.nome} ${awayFlag}\n`;
+        texto += `⏱ ${minutoTexto}\n\n`;
+    }
+
+    return message.reply(texto);
+}
+  
   
     // =========================
     // FM HELP
