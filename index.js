@@ -517,7 +517,71 @@ if (comando === "!copagols") {
 
     return message.reply(texto);
 }
-  
+
+
+  // =========================
+// !COPA FUTUROS (SÓ PRÓXIMOS JOGOS)
+// =========================
+
+if (comando === "!copaftr") {
+
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games || [];
+
+    function parseData(dataStr) {
+        if (!dataStr) return null;
+        const d = new Date(dataStr.replace(" ", "T"));
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    const agora = new Date();
+
+    const futuros = jogos.filter(j => {
+
+        if (!j.home_team_name_en || !j.away_team_name_en) return false;
+
+        const data = parseData(j.local_date);
+        if (!data) return false;
+
+        const finalizado =
+            j.finished === true ||
+            j.finished === "TRUE" ||
+            j.status === "FINISHED";
+
+        // 🔥 só jogos que ainda vão acontecer
+        return data > agora && !finalizado;
+    });
+
+    futuros.sort((a, b) => {
+        return parseData(a.local_date) - parseData(b.local_date);
+    });
+
+    if (!futuros.length) {
+        return message.reply("📅 Nenhum jogo futuro encontrado.");
+    }
+
+    let texto = "📅 COPA DO MUNDO 2026 - PRÓXIMOS JOGOS\n\n";
+
+    for (const game of futuros) {
+
+        const home = getPais(game.home_team_name_en);
+        const away = getPais(game.away_team_name_en);
+
+        const homeFlag = emojiBandeira(home.code);
+        const awayFlag = emojiBandeira(away.code);
+
+        const data = parseData(game.local_date);
+
+        // 📌 só DATA
+        const dataFormatada = data
+            ? data.toLocaleDateString("pt-BR")
+            : "data não definida";
+
+        texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n📅 ${dataFormatada}\n\n`;
+    }
+
+    return message.reply(texto);
+          }
   
     // =========================
     // FM HELP
