@@ -358,7 +358,7 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 // =========================
-// COPA - COMANDO !COPA
+// COPA - COMANDO !COPA (JOGOS DO DIA CORRIGIDO)
 // =========================
 
 if (message.body?.toLowerCase().trim() === "!copa") {
@@ -372,16 +372,42 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // ordena todos os jogos por data (sem filtro quebrado)
-  jogos.sort((a, b) => {
-    const da = parseData(a.local_date);
-    const db = parseData(b.local_date);
-    return (da || 0) - (db || 0);
-  });
+  // 🟢 HOJE no Brasil (sem conversões extras)
+  const hojeBR = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date()); // YYYY-MM-DD
 
-  let texto = "🏆 Copa do Mundo 2026\n\n";
+  const jogosHoje = [];
 
-  for (const game of jogos) {
+  for (const j of jogos) {
+
+    const data = parseData(j.local_date);
+    if (!data) continue;
+
+    const diaJogo = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(data);
+
+    if (diaJogo === hojeBR) {
+      jogosHoje.push({ ...j, data });
+    }
+  }
+
+  jogosHoje.sort((a, b) => a.data - b.data);
+
+  if (jogosHoje.length === 0) {
+    return message.reply("🏆 Copa do Mundo 2026\n\nNenhum jogo hoje.");
+  }
+
+  let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+
+  for (const game of jogosHoje) {
 
     const home = getPais(game.home_team_name_en || "Unknown");
     const away = getPais(game.away_team_name_en || "Unknown");
@@ -389,24 +415,24 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     const homeFlag = emojiBandeira(home.code);
     const awayFlag = emojiBandeira(away.code);
 
-    const data = parseData(game.local_date);
-
-    let horario = "??:??";
-    if (data) {
-      horario = data.toLocaleTimeString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
+    const horarioBR = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(game.data);
 
     let placar = "";
 
-    if (game.finished === true || game.finished === "TRUE") {
-      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
+    const finalizado =
+      game.finished === true ||
+      game.finished === "TRUE" ||
+      game.status === "FINISHED";
+
+    if (finalizado) {
+      placar = `\n${game.home_score} - ${game.away_score}`;
     }
 
-    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horario}${placar}\n\n`;
+    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
   }
 
   message.reply(texto);
