@@ -358,7 +358,6 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 
-
 // =========================
 // COPA - COMANDO !COPA
 // =========================
@@ -366,32 +365,53 @@ client.on('message', async message => {
 if (message.body?.toLowerCase().trim() === "!copa") {
 
   const res = await axios.get("https://worldcup26.ir/get/games");
-  const jogos = res.data.games || [];
+  const jogos = res.data.games;
 
-  // 📅 HOJE no horário do Brasil (NÃO UTC)
-  const hoje = new Date().toLocaleDateString("sv-SE", {
-    timeZone: "America/Sao_Paulo"
-  });
+  // 🟢 pega data atual no horário de Brasília
+  const agoraBR = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+  );
 
-  // 🔎 filtra só jogos do dia
+  const hojeBR = agoraBR.toISOString().split("T")[0];
+
+  function parseData(dataStr) {
+    if (!dataStr) return null;
+
+    // normaliza formatos tipo:
+    // "2026-06-14 18:00:00"
+    // "2026-06-14T18:00:00Z"
+
+    const d = new Date(dataStr.replace(" ", "T"));
+    if (isNaN(d.getTime())) return null;
+
+    return d;
+  }
+
   let jogosHoje = jogos.filter(j => {
-    if (!j.local_date) return false;
-    return j.local_date.slice(0, 10) === hoje;
+    const d = parseData(j.local_date);
+    if (!d) return false;
+
+    const dataISO = new Date(
+      d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    ).toISOString().split("T")[0];
+
+    return dataISO === hojeBR;
   });
 
-  // ⏱ ordena por horário
+  // ordena por horário BR
   jogosHoje.sort((a, b) => {
-    return new Date(a.local_date.replace(" ", "T")) -
-           new Date(b.local_date.replace(" ", "T"));
+    const da = parseData(a.local_date);
+    const db = parseData(b.local_date);
+    return da - db;
   });
+
+  let texto = "🏆 Copa do Mundo 2026 (Hoje - Brasília)\n\n";
 
   if (jogosHoje.length === 0) {
     return message.reply("🏆 Copa do Mundo 2026\n\nNenhum jogo hoje.");
   }
 
-  let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
-
-  for (const game of jogosHoje) {
+  jogosHoje.forEach(game => {
 
     const home = getPais(game.home_team_name_en || "Unknown");
     const away = getPais(game.away_team_name_en || "Unknown");
@@ -399,35 +419,30 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     const homeFlag = emojiBandeira(home.code);
     const awayFlag = emojiBandeira(away.code);
 
-    const homeName = home.nome;
-    const awayName = away.nome;
+    const homeName = home.nome || game.home_team_name_en;
+    const awayName = away.nome || game.away_team_name_en;
 
-    // 🕒 horário Brasil
-    const data = new Date(game.local_date.replace(" ", "T"));
+    const data = parseData(game.local_date);
 
-    let horarioBR = "horário não disponível";
+    const horarioBR = data
+      ? data.toLocaleTimeString("pt-BR", {
+          timeZone: "America/Sao_Paulo",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+      : "??:??";
 
-    if (!isNaN(data.getTime())) {
-      horarioBR = data.toLocaleTimeString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
-
-    // ⚽ placar (se já terminou)
     let placar = "";
 
     if (game.finished === true || game.finished === "TRUE") {
-      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
+      placar = `\n${game.home_score} - ${game.away_score}`;
     }
 
     texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
-  }
+  });
 
   message.reply(texto);
 }
-
   
     // =========================
     // FM HELP
