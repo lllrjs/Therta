@@ -363,51 +363,59 @@ client.on('message', async message => {
 
 if (comando === "!copa") {
 
-const res = await axios.get("https://worldcup26.ir/get/games");  
-const jogos = res.data.games || [];  
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games || [];
 
-// data atual no formato MM/DD/YYYY  
-const hoje = new Date();  
-const dataHoje =  
-    String(hoje.getMonth() + 1).padStart(2, "0") + "/" +  
-    String(hoje.getDate()).padStart(2, "0") + "/" +  
-    hoje.getFullYear();  
+    function parseData(dataStr) {
+        if (!dataStr) return null;
+        const d = new Date(dataStr.replace(" ", "T"));
+        return isNaN(d.getTime()) ? null : d;
+    }
 
-// filtra apenas jogos do dia  
-const jogosHoje = jogos.filter(j =>  
-    j.local_date?.startsWith(dataHoje)  
-);  
+    // 📅 hoje real (sem string da API)
+    const hoje = new Date();
 
-if (!jogosHoje.length) {  
-    return message.reply("⚽ Nenhum jogo hoje.");  
-}  
+    const jogosHoje = jogos.filter(j => {
 
-let texto = "🏆 Copa do Mundo 2026 (Jogos mais próximos)\n\n";  
+        const data = parseData(j.local_date);
+        if (!data) return false;
 
-for (const game of jogosHoje) {  
+        return (
+            data.getDate() === hoje.getDate() &&
+            data.getMonth() === hoje.getMonth() &&
+            data.getFullYear() === hoje.getFullYear()
+        );
+    });
 
-    const home = getPais(game.home_team_name_en || "Unknown");  
-    const away = getPais(game.away_team_name_en || "Unknown");  
+    if (!jogosHoje.length) {
+        return message.reply("⚽ Nenhum jogo hoje.");
+    }
 
-    const homeFlag = emojiBandeira(home.code);  
-    const awayFlag = emojiBandeira(away.code);  
+    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-    let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;  
+    for (const game of jogosHoje) {
 
-    const finalizado =  
-        game.finished === true ||  
-        game.finished === "TRUE" ||  
-        game.status === "FINISHED";  
+        const home = getPais(game.home_team_name_en || "Unknown");
+        const away = getPais(game.away_team_name_en || "Unknown");
 
-    if (finalizado) {  
-        linha += `\n${game.home_score} - ${game.away_score}`;  
-    }  
+        const homeFlag = emojiBandeira(home.code);
+        const awayFlag = emojiBandeira(away.code);
 
-    texto += linha + "\n\n";  
-}  
+        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;
 
-return message.reply(texto);
+        const finalizado =
+            game.finished === true ||
+            game.finished === "TRUE" ||
+            game.status === "FINISHED";
 
+        if (finalizado) {
+            linha += `\n${game.home_score} - ${game.away_score}`;
+        }
+
+        texto += linha + "\n\n";
+    }
+
+    return message.reply(texto);
 }
 
 // =========================
