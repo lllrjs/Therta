@@ -361,57 +361,53 @@ client.on('message', async message => {
 // !COPA - COPA COMANDOS
 // =========================
 
-if (comando === "!copa") {
+  if (comando === "!copa") {
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games || [];
+    const res = await axios.get("https://api-football-v1.p.rapidapi.com/v3/fixtures", {
+        headers: {
+            "X-RapidAPI-Key": process.env.FOOTBALL_API_KEY,
+            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        },
+        params: {
+            league: 1, // FIFA World Cup (geralmente 1 ou 2 depende da API)
+            season: 2026,
+            date: new Date().toISOString().split("T")[0]
+        }
+    });
 
-    function parseDate(d) {
-        if (!d) return null;
-        const x = new Date(d);
-        return isNaN(x.getTime()) ? null : x;
+    const jogos = res.data.response || [];
+
+    if (!jogos.length) {
+        return message.reply("⚽ Nenhum jogo hoje.");
     }
 
-    const validos = jogos
-        .map(j => ({
-            ...j,
-            data: parseDate(j.date)
-        }))
-        .filter(j => j.data);
+    let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-    // 🔥 ordena direto pelo horário da API
-    validos.sort((a, b) => a.data - b.data);
+    for (const game of jogos) {
 
-    if (!validos.length) {
-        return message.reply("⚽ Nenhum jogo encontrado.");
-    }
+        const home = game.teams.home.name;
+        const away = game.teams.away.name;
 
-    let texto = "🏆 Copa do Mundo 2026 (Todos os jogos)\n\n";
+        const status = game.fixture.status.short;
 
-    for (const game of validos) {
+        let linha = `⚽ ${home} vs ${away}`;
 
-        const home = getPais(game.home_team_name_en || "Unknown");
-        const away = getPais(game.away_team_name_en || "Unknown");
+        // 🟢 AO VIVO
+        if (status === "LIVE") {
+            linha += ` 🔴 AO VIVO (${game.fixture.status.elapsed}')`;
+        }
 
-        const homeFlag = emojiBandeira(home.code);
-        const awayFlag = emojiBandeira(away.code);
-
-        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}`;
-
-        const finalizado =
-            game.finished === true ||
-            game.finished === "TRUE" ||
-            game.status === "FINISHED";
-
-        if (finalizado) {
-            linha += `\n${game.home_score} - ${game.away_score}`;
+        // 🏁 FINALIZADO
+        if (status === "FT") {
+            linha += `\n${game.goals.home} - ${game.goals.away}`;
         }
 
         texto += linha + "\n\n";
     }
 
     return message.reply(texto);
-}
+  }
+
 // =========================
 // !COPA AO VIVO (COM MINUTO)
 // =========================
