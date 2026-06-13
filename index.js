@@ -358,58 +358,31 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 
-// =========================
-// COPA - COMANDO !COPA
-// =========================
-
 if (message.body?.toLowerCase().trim() === "!copa") {
 
   const res = await axios.get("https://worldcup26.ir/get/games");
-  const jogos = res.data.games;
+  const jogos = res.data.games || [];
 
-  // 🟢 pega data atual no horário de Brasília
-  const hojeBR = new Date().toLocaleDateString("sv-SE", {
-  timeZone: "America/Sao_Paulo"
-});
+  const hoje = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo"
+  });
 
-  function parseData(dataStr) {
-    if (!dataStr) return null;
-
-    // normaliza formatos tipo:
-    // "2026-06-14 18:00:00"
-    // "2026-06-14T18:00:00Z"
-
-    const d = new Date(dataStr.replace(" ", "T"));
-    if (isNaN(d.getTime())) return null;
-
-    return d;
-  }
+  const parse = (d) => new Date(d?.replace(" ", "T"));
 
   let jogosHoje = jogos.filter(j => {
-    const d = parseData(j.local_date);
-    if (!d) return false;
-
-    const dataISO = new Date(
-      d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-    ).toISOString().split("T")[0];
-
-    return dataISO === hojeBR;
+    if (!j.local_date) return false;
+    return j.local_date.slice(0, 10) === hoje;
   });
 
-  // ordena por horário BR
-  jogosHoje.sort((a, b) => {
-    const da = parseData(a.local_date);
-    const db = parseData(b.local_date);
-    return da - db;
-  });
-
-  let texto = "🏆 Copa do Mundo 2026 (Hoje - Brasília)\n\n";
+  jogosHoje.sort((a, b) => parse(a.local_date) - parse(b.local_date));
 
   if (jogosHoje.length === 0) {
     return message.reply("🏆 Copa do Mundo 2026\n\nNenhum jogo hoje.");
   }
 
-  jogosHoje.forEach(game => {
+  let texto = "🏆 Copa do Mundo 2026 (Hoje - Brasília)\n\n";
+
+  for (const game of jogosHoje) {
 
     const home = getPais(game.home_team_name_en || "Unknown");
     const away = getPais(game.away_team_name_en || "Unknown");
@@ -417,12 +390,9 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     const homeFlag = emojiBandeira(home.code);
     const awayFlag = emojiBandeira(away.code);
 
-    const homeName = home.nome || game.home_team_name_en;
-    const awayName = away.nome || game.away_team_name_en;
+    const data = parse(game.local_date);
 
-    const data = parseData(game.local_date);
-
-    const horarioBR = data
+    const horarioBR = !isNaN(data)
       ? data.toLocaleTimeString("pt-BR", {
           timeZone: "America/Sao_Paulo",
           hour: "2-digit",
@@ -433,11 +403,11 @@ if (message.body?.toLowerCase().trim() === "!copa") {
     let placar = "";
 
     if (game.finished === true || game.finished === "TRUE") {
-      placar = `\n${game.home_score} - ${game.away_score}`;
+      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
     }
 
-    texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
-  });
+    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horarioBR}${placar}\n\n`;
+  }
 
   message.reply(texto);
 }
