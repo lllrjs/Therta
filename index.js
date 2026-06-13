@@ -360,67 +360,77 @@ client.on('message', async message => {
 
 
 // =========================
-// COPA - COMANDO !COPA (FIXED)
+// COPA - COMANDO !COPA
 // =========================
 
 if (message.body.toLowerCase().trim() === "!copa") {
 
-  const res = await axios.get("https://worldcup26.ir/get/games");
-  const jogos = res.data.games;
+  try {
+    const res = await axios.get("https://worldcup26.ir/get/games");
+    const jogos = res.data.games || [];
 
-  // HOJE no formato do API (não ISO)
-  const hoje = new Date().toISOString().split("T")[0];
+    const hoje = new Date().toISOString().slice(0, 10);
 
-  let jogosHoje = jogos.filter(j => {
-    if (!j.local_date) return false;
-    return j.local_date.slice(0, 10) === hoje;
-  });
+    let jogosHoje = jogos.filter(j => {
+      if (!j.local_date) return false;
+      return j.local_date.slice(0, 10) === hoje;
+    });
 
-  // ordem correta
-  jogosHoje.sort((a, b) => {
-    return new Date(a.local_date.replace(" EDT", "")) -
-           new Date(b.local_date.replace(" EDT", ""));
-  });
+    jogosHoje.sort((a, b) =>
+      new Date(a.local_date || 0) - new Date(b.local_date || 0)
+    );
 
-  let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
+    let texto = "🏆 Copa do Mundo 2026 (Hoje)\n\n";
 
-  jogosHoje.forEach(game => {
+    for (const game of jogosHoje) {
 
-    const home = getPais(game.home_team_name_en || "Unknown");
-    const away = getPais(game.away_team_name_en || "Unknown");
+      const home = getPais(game.home_team_name_en || "Unknown");
+      const away = getPais(game.away_team_name_en || "Unknown");
 
-    const homeFlag = emojiBandeira(home.code);
-    const awayFlag = emojiBandeira(away.code);
+      const homeFlag = emojiBandeira(home.code);
+      const awayFlag = emojiBandeira(away.code);
 
-    // 🔥 hora BR corrigida
-    let horarioBR = "⏳";
+      const homeName = home.nome || game.home_team_name_en;
+      const awayName = away.nome || game.away_team_name_en;
 
-    try {
-      horarioBR = new Date(
-        game.local_date.replace(" EDT", "")
-      ).toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    } catch (e) {
-      horarioBR = "horário indisponível";
+      // ===== horário BR seguro =====
+      let horarioBR = "⏰ --:--";
+
+      if (game.local_date) {
+        const data = new Date(game.local_date);
+
+        if (!isNaN(data.getTime())) {
+          horarioBR = data.toLocaleTimeString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+        }
+      }
+
+      // ===== placar =====
+      let placar = "";
+
+      if (game.finished === true || game.finished === "TRUE") {
+        if (game.home_score != null && game.away_score != null) {
+          placar = `\n🔥 ${game.home_score} - ${game.away_score}`;
+        }
+      }
+
+      texto += `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}
+🕒 ${horarioBR}${placar}\n\n`;
     }
 
-    // placar só se existir
-    let placar = "";
-
-    if (game.finished === true || game.status === "finished") {
-      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
+    if (jogosHoje.length === 0) {
+      texto += "Nenhum jogo hoje.";
     }
 
-    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}
-🕒 ${horarioBR}${placar}
+    message.reply(texto);
 
-`;
-  });
-
-  message.reply(texto || "Nenhum jogo hoje.");
+  } catch (err) {
+    console.log(err);
+    message.reply("Erro ao buscar jogos da Copa.");
+  }
 }
 
   
