@@ -7,6 +7,30 @@ const axios = require('axios');
 const sharp = require('sharp');
 const path = require('path');
 
+// =========================
+// COPA
+// =========================
+
+const countries = require("i18n-iso-countries");
+
+countries.registerLocale(require("i18n-iso-countries/langs/pt.json"));
+countries.registerLocale(require("i18n-iso-countries/langs/en.json"));
+
+
+// =========================
+// COPA - TRADUTOR DE PAÍSES
+// =========================
+
+function traduzirPais(nome) {
+  const code = countries.getAlpha2Code(nome, "en");
+
+  if (!code) return nome;
+
+  return countries.getName(code, "pt", { select: "official" }) || nome;
+}
+
+
+
 async function gerarColagem(buffers, output = "colagem.jpg") {
     const size = 300;
 
