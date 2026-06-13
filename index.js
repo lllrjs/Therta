@@ -357,8 +357,10 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
-// =========================
-// !COPA - COPA COMANDOS
+
+
+  // =========================
+// !COPA
 // =========================
 
 if (comando === "!copa") {
@@ -372,40 +374,20 @@ if (comando === "!copa") {
         return isNaN(d.getTime()) ? null : d;
     }
 
-    // =========================
-// DATA SEGURA (IGNORA FUSO)
-// =========================
+    const hoje = new Date();
 
-function parseData(dataStr) {
-    if (!dataStr) return null;
-    const d = new Date(dataStr.replace(" ", "T"));
-    return isNaN(d.getTime()) ? null : d;
-}
-
-// hoje em "dia real do servidor"
-const hoje = new Date();
-
-let jogosHoje = jogos
-    .map(j => ({
-        ...j,
-        data: parseData(j.local_date)
-    }))
-    .filter(j => j.data)
-    .filter(j => {
-        return (
+    let jogosHoje = jogos
+        .map(j => ({
+            ...j,
+            data: parseData(j.local_date)
+        }))
+        .filter(j => j.data)
+        .filter(j =>
             j.data.getFullYear() === hoje.getFullYear() &&
             j.data.getMonth() === hoje.getMonth() &&
             j.data.getDate() === hoje.getDate()
-        );
-    });
-  
-    // se não tiver jogos
-    if (!jogosHoje.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
-    }
-
-    // 🔥 ORDENAR POR HORÁRIO (CORRETO)
-    jogosHoje.sort((a, b) => a.data - b.data);
+        )
+        .sort((a, b) => a.data - b.data);
 
     let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
@@ -425,7 +407,7 @@ let jogosHoje = jogos
             game.status === "FINISHED";
 
         if (finalizado) {
-            linha += `\n${game.home_score} - ${game.away_score}`;
+            linha += `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
         }
 
         texto += linha + "\n\n";
