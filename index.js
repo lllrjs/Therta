@@ -357,72 +357,59 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
-
-
-
-    // =========================
-// COPA - COMANDO COPA
+// =========================
+// COPA - COMANDO !COPA
 // =========================
 
-if (comando === "!copa") {
+if (message.body?.toLowerCase().trim() === "!copa") {
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games || [];
+  const res = await axios.get("https://worldcup26.ir/get/games");
+  const jogos = res.data.games || [];
 
-    // data atual no formato MM/DD/YYYY
-    const hoje = new Date();
-    const dataHoje =
-        String(hoje.getMonth() + 1).padStart(2, "0") + "/" +
-        String(hoje.getDate()).padStart(2, "0") + "/" +
-        hoje.getFullYear();
+  function parseData(str) {
+    if (!str) return null;
+    const d = new Date(str.replace(" ", "T"));
+    return isNaN(d.getTime()) ? null : d;
+  }
 
-    // filtra apenas jogos do dia
-    let jogosHoje = jogos.filter(j =>
-        j.local_date && j.local_date.startsWith(dataHoje)
-    );
+  // ordena todos os jogos por data (sem filtro quebrado)
+  jogos.sort((a, b) => {
+    const da = parseData(a.local_date);
+    const db = parseData(b.local_date);
+    return (da || 0) - (db || 0);
+  });
 
-    if (!jogosHoje.length) {
-        return message.reply("⚽ Nenhum jogo hoje.");
+  let texto = "🏆 Copa do Mundo 2026\n\n";
+
+  for (const game of jogos) {
+
+    const home = getPais(game.home_team_name_en || "Unknown");
+    const away = getPais(game.away_team_name_en || "Unknown");
+
+    const homeFlag = emojiBandeira(home.code);
+    const awayFlag = emojiBandeira(away.code);
+
+    const data = parseData(game.local_date);
+
+    let horario = "??:??";
+    if (data) {
+      horario = data.toLocaleTimeString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
 
-    // ordena por horário
-    jogosHoje.sort((a, b) =>
-        new Date(a.local_date) - new Date(b.local_date)
-    );
+    let placar = "";
 
-    let texto = "🏆 Copa do Mundo 2026 (Jogos mais próximos)\n\n";
-
-    for (const game of jogosHoje) {
-
-        const home = getPais(game.home_team_name_en || "Unknown");
-        const away = getPais(game.away_team_name_en || "Unknown");
-
-        const homeFlag = emojiBandeira(home.code);
-        const awayFlag = emojiBandeira(away.code);
-
-        const data = new Date(game.local_date.replace(" ", "T"));
-
-        let horarioBR = "??:??";
-
-        if (!isNaN(data.getTime())) {
-            horarioBR = data.toLocaleTimeString("pt-BR", {
-                timeZone: "America/Sao_Paulo",
-                hour: "2-digit",
-                minute: "2-digit"
-            });
-        }
-
-        let linha = `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horarioBR}`;
-
-        // mostra placar só se terminou
-        if (game.finished === "TRUE" || game.finished === true) {
-            linha += `\n🔥 ${game.home_score} - ${game.away_score}`;
-        }
-
-        texto += linha + "\n\n";
+    if (game.finished === true || game.finished === "TRUE") {
+      placar = `\n${game.home_score ?? 0} - ${game.away_score ?? 0}`;
     }
 
-    return message.reply(texto);
+    texto += `${homeFlag} ${home.nome} vs ${away.nome} ${awayFlag}\n🕒 ${horario}${placar}\n\n`;
+  }
+
+  message.reply(texto);
 }
   
     // =========================
