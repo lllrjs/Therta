@@ -362,7 +362,7 @@ client.on('message', async message => {
 // COPA - COMANDO !COPA
 // =========================
 
-if (msg.body === "!copa") {
+if (message.body.toLowerCase().trim() === "!copa") {
 
   const res = await axios.get("https://worldcup26.ir/get/games");
   const jogos = res.data.games;
@@ -408,7 +408,7 @@ if (msg.body === "!copa") {
 🕒 ${horarioBR}${placar}\n\n`;
   });
 
-  msg.reply(texto);
+  message.reply(texto);
 }
 
   
