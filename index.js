@@ -366,7 +366,7 @@ client.on('message', async message => {
 
 
 // =========================
-// !COPA (CORRIGIDO BRASILIA + LIVE OK)
+// !COPA (FIFA - BRASÍLIA OK + CORRIGIDO)
 // =========================
 
 if (comando === "!copa") {
@@ -377,8 +377,8 @@ if (comando === "!copa") {
 
   const jogos = res.data.Results || [];
 
-  // 🇧🇷 BRASILIA TIME
-  function toBR(dateStr) {
+  // 🇧🇷 converter pra Brasília
+  function toBrasilia(dateStr) {
     return new Date(
       new Date(dateStr).toLocaleString("en-US", {
         timeZone: "America/Sao_Paulo"
@@ -386,11 +386,15 @@ if (comando === "!copa") {
     );
   }
 
-  const agoraBR = toBR(new Date());
+  const agoraBR = new Date(
+    new Date().toLocaleString("en-US", {
+      timeZone: "America/Sao_Paulo"
+    })
+  );
 
-  // 🧠 filtro correto de HOJE (BR)
+  // 🇧🇷 pega só jogos do dia (BRASILIA)
   const jogosHoje = jogos
-    .map(j => ({ ...j, data: toBR(j.Date) }))
+    .map(j => ({ ...j, data: toBrasilia(j.Date) }))
     .filter(j =>
       j.data.getDate() === agoraBR.getDate() &&
       j.data.getMonth() === agoraBR.getMonth() &&
@@ -402,33 +406,21 @@ if (comando === "!copa") {
     return message.reply("⚽ Nenhum jogo hoje.");
   }
 
-  // 🇧🇷 função simples de bandeira (SEM mapa)
   function flag(code = "") {
-    if (!code || code.length < 2) return "🏳️";
-
+    if (!code) return "";
     return code
       .toUpperCase()
       .slice(0, 2)
-      .replace(/./g, c =>
-        String.fromCodePoint(127397 + c.charCodeAt())
-      );
+      .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
   }
 
-  // 🔴 detecta AO VIVO REAL (não só MatchTime)
+  // 🔴 detecta ao vivo corretamente (SEM erro de jogo futuro)
   function isLive(game) {
-    const home = game.HomeTeamScore;
-    const away = game.AwayTeamScore;
+    const hasMinute = game.MatchTime && game.MatchTime.includes("'");
+    const notFinished =
+      game.HomeTeamScore === null || game.AwayTeamScore === null;
 
-    const hasScore =
-      home !== null &&
-      away !== null &&
-      home !== undefined &&
-      away !== undefined;
-
-    const minute = game.MatchTime;
-
-    // só é live se tiver minuto OU status ativo + jogo não finalizado
-    return minute && !hasScore;
+    return hasMinute && notFinished;
   }
 
   let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
@@ -438,8 +430,8 @@ if (comando === "!copa") {
     const home = game.Home?.TeamName?.[0]?.Description || "Time A";
     const away = game.Away?.TeamName?.[0]?.Description || "Time B";
 
-    const homeCode = game.Home?.IdCountry;
-    const awayCode = game.Away?.IdCountry;
+    const homeCode = game.Home?.IdCountry || "";
+    const awayCode = game.Away?.IdCountry || "";
 
     const homeFlag = flag(homeCode);
     const awayFlag = flag(awayCode);
@@ -449,12 +441,12 @@ if (comando === "!copa") {
 
     let linha = `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
 
-    // 🔴 AO VIVO correto
+    // 🔴 AO VIVO só se for REALMENTE live
     if (isLive(game)) {
       linha += ` 🔴 AO VIVO (${game.MatchTime})`;
     }
 
-    // 🏁 placar
+    // ⚽ placar só se existir
     if (homeScore !== null && awayScore !== null) {
       linha += `\n${homeScore} - ${awayScore}`;
     }
@@ -463,13 +455,13 @@ if (comando === "!copa") {
   }
 
   return message.reply(texto);
-}
+            }
 
 // =========================
-// !COPALIVE (CORRIGIDO 100%)
+// !COPALIVE (AO VIVO REAL)
 // =========================
 
-if ((message.body || "").toLowerCase().trim() === "!copalive") {
+if (message.body?.toLowerCase().trim() === "!copalive") {
 
   const res = await axios.get(
     "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
@@ -477,52 +469,26 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
 
   const jogos = res.data.Results || [];
 
-  // 🇧🇷 converte para horário BR
-  function toBR(dateStr) {
-    return new Date(
-      new Date(dateStr).toLocaleString("en-US", {
-        timeZone: "America/Sao_Paulo"
-      })
-    );
-  }
-
-  // 🔴 LIVE REAL (regra segura)
   function isLive(game) {
-    const minute = game.MatchTime;
-    const home = game.HomeTeamScore;
-    const away = game.AwayTeamScore;
+    const hasMinute = game.MatchTime && game.MatchTime.includes("'");
+    const notFinished =
+      game.HomeTeamScore === null || game.AwayTeamScore === null;
 
-    const hasScore =
-      home !== null &&
-      away !== null &&
-      home !== undefined &&
-      away !== undefined;
-
-    // só é AO VIVO se:
-    // - tem minuto (45', 78', etc)
-    // - e NÃO terminou
-    return minute && !hasScore;
+    return hasMinute && notFinished;
   }
 
-  // 🧠 filtra apenas jogos realmente ao vivo
-  const aoVivo = jogos
-    .filter(isLive)
-    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+  const aoVivo = jogos.filter(isLive);
 
   if (!aoVivo.length) {
     return message.reply("⚽ Nenhum jogo ao vivo agora.");
   }
 
-  // 🇧🇷 bandeira simples (sem mapa)
   function flag(code = "") {
-    if (!code || code.length < 2) return "🏳️";
-
+    if (!code) return "";
     return code
       .toUpperCase()
       .slice(0, 2)
-      .replace(/./g, c =>
-        String.fromCodePoint(127397 + c.charCodeAt())
-      );
+      .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
   }
 
   let texto = "🔴 COPA DO MUNDO 2026 (AO VIVO)\n\n";
@@ -535,16 +501,11 @@ if ((message.body || "").toLowerCase().trim() === "!copalive") {
     const homeFlag = flag(game.Home?.IdCountry);
     const awayFlag = flag(game.Away?.IdCountry);
 
-    const homeScore = game.HomeTeamScore ?? 0;
-    const awayScore = game.AwayTeamScore ?? 0;
+    const homeScore = game.HomeTeamScore;
+    const awayScore = game.AwayTeamScore;
 
-    const minute = game.MatchTime || "";
-
-    let linha = `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
-    linha += ` 🔴 AO VIVO (${minute})`;
-    linha += `\n${homeScore} - ${awayScore}`;
-
-    texto += linha + "\n\n";
+    texto += `⚽ ${homeFlag} ${home} vs ${awayFlag} ${away}\n`;
+    texto += `${homeScore} - ${awayScore} 🔴 AO VIVO (${game.MatchTime})\n\n`;
   }
 
   return message.reply(texto);
