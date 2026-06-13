@@ -339,20 +339,18 @@ if (comando === "!copateste") {
     try {
 
         const { data } = await axios.get(
-            "https://v3.football.api-sports.io/leagues",
-            { headers }
+            "https://v3.football.api-sports.io/fixtures",
+            {
+                headers,
+                params: {
+                    league: 1,
+                    season: 2026
+                }
+            }
         );
-
-        const copa = data.response.find(
-            l => l.league?.id === 1
-        );
-
-        const temporadas = copa.seasons
-            .map(s => s.year)
-            .join(", ");
 
         return message.reply(
-            `temporadas:\n${temporadas}`
+            `results: ${data.results}`
         );
 
     } catch (err) {
