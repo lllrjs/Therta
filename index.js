@@ -520,7 +520,7 @@ if (comando === "!copagols") {
 
 
   // =========================
-// !COPA FUTUROS (SÓ PRÓXIMOS JOGOS)
+// !COPA FUTUROS (CORRIGIDO)
 // =========================
 
 if (comando === "!copaftr") {
@@ -534,7 +534,12 @@ if (comando === "!copaftr") {
         return isNaN(d.getTime()) ? null : d;
     }
 
-    const agora = new Date();
+    // 📌 hoje sem fuso (base simples e estável)
+    const hoje = new Date();
+    const hojeStr =
+        hoje.getFullYear() + "-" +
+        String(hoje.getMonth() + 1).padStart(2, "0") + "-" +
+        String(hoje.getDate()).padStart(2, "0");
 
     const futuros = jogos.filter(j => {
 
@@ -548,13 +553,16 @@ if (comando === "!copaftr") {
             j.finished === "TRUE" ||
             j.status === "FINISHED";
 
-        // 🔥 só jogos que ainda vão acontecer
-        return data > agora && !finalizado;
+        const dataStr =
+            data.getFullYear() + "-" +
+            String(data.getMonth() + 1).padStart(2, "0") + "-" +
+            String(data.getDate()).padStart(2, "0");
+
+        // 🔥 só jogos depois de hoje OU em dias futuros
+        return dataStr >= hojeStr && !finalizado;
     });
 
-    futuros.sort((a, b) => {
-        return parseData(a.local_date) - parseData(b.local_date);
-    });
+    futuros.sort((a, b) => parseData(a.local_date) - parseData(b.local_date));
 
     if (!futuros.length) {
         return message.reply("📅 Nenhum jogo futuro encontrado.");
@@ -572,7 +580,6 @@ if (comando === "!copaftr") {
 
         const data = parseData(game.local_date);
 
-        // 📌 só DATA
         const dataFormatada = data
             ? data.toLocaleDateString("pt-BR")
             : "data não definida";
@@ -581,7 +588,7 @@ if (comando === "!copaftr") {
     }
 
     return message.reply(texto);
-          }
+}
   
     // =========================
     // FM HELP
