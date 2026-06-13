@@ -369,12 +369,16 @@ if (comando === "!copa") {
 
     const jogos = res.data.Results || [];
 
-    // 🔥 HOJE EM UTC (CORRETO PARA FIFA)
-    const hojeISO = new Date().toISOString().slice(0, 10);
+    // 🔥 usa data do próprio jogo (NÃO UTC do servidor)
+    function getDateKey(dateStr) {
+        const d = new Date(dateStr);
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    }
 
-    // filtra jogos do dia corretamente
+    const hoje = getDateKey(new Date().toISOString());
+
     let jogosHoje = jogos
-        .filter(j => j.Date && j.Date.slice(0, 10) === hojeISO)
+        .filter(j => j.Date && getDateKey(j.Date) === hoje)
         .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
     if (!jogosHoje.length) {
@@ -385,33 +389,27 @@ if (comando === "!copa") {
 
     for (const game of jogosHoje) {
 
-        // 🔥 usa código direto da FIFA (SEM getPais quebrando)
-        const homeCode = game.Home?.IdCountry;
-        const awayCode = game.Away?.IdCountry;
-
-        const homeName =
-            game.Home?.TeamName?.[0]?.Description ||
-            game.Home?.ShortClubName ||
-            "Time A";
-
-        const awayName =
-            game.Away?.TeamName?.[0]?.Description ||
-            game.Away?.ShortClubName ||
-            "Time B";
+        // 🔥 EMOJIS CORRIGIDOS (SÓ 2 LETRAS ISO)
+        const homeCode = game.Home?.Abbreviation;
+        const awayCode = game.Away?.Abbreviation;
 
         const homeFlag = emojiBandeira(homeCode);
         const awayFlag = emojiBandeira(awayCode);
 
-        let linha = `${homeFlag} ${homeName} vs ${awayName} ${awayFlag}`;
+        const home =
+            game.Home?.TeamName?.[0]?.Description || "Time A";
+
+        const away =
+            game.Away?.TeamName?.[0]?.Description || "Time B";
+
+        let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
 
         const status = game.MatchTime;
 
-        // 🔴 AO VIVO
         if (status && status.includes("'")) {
             linha += ` 🔴 AO VIVO (${status})`;
         }
 
-        // 🏁 FINALIZADO
         const finalizado =
             game.Home?.Score != null &&
             game.Away?.Score != null &&
