@@ -347,8 +347,12 @@ if (comando === "!copateste") {
             l => l.league?.id === 1
         );
 
+        const temporadas = copa.seasons
+            .map(s => s.year)
+            .join(", ");
+
         return message.reply(
-            JSON.stringify(copa, null, 2).slice(0, 1500)
+            `temporadas:\n${temporadas}`
         );
 
     } catch (err) {
