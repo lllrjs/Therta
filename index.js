@@ -358,7 +358,7 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 // =========================
-// !COPA - FIFA (BRASÍLIA UTC OK)
+// !COPA - FIFA (SIMPLIFICADO + BRASIL)
 // =========================
 
 if (comando === "!copa") {
@@ -369,20 +369,18 @@ if (comando === "!copa") {
 
     const jogos = res.data.Results || [];
 
-function emojiBandeira(code = "") {
-    if (!code) return "🏳️";
+    // 🏳️ bandeira por código ISO (BR, QA, US, etc)
+    function emojiBandeira(code = "") {
+        if (!code) return "🏳️";
 
-    const iso2 = code
-        .toUpperCase()
-        .slice(0, 2); // 🔥 TRUQUE SIMPLES
+        return code
+            .toUpperCase()
+            .replace(/./g, c =>
+                String.fromCodePoint(127397 + c.charCodeAt())
+            );
+    }
 
-    return iso2
-        .split("")
-        .map(c => String.fromCodePoint(127397 + c.charCodeAt()))
-        .join("");
-}
-  
-    // 🕒 converte pra horário de Brasília
+    // 🕒 converter UTC → Brasília
     function toBrasilia(dateStr) {
         return new Date(
             new Date(dateStr).toLocaleString("en-US", {
@@ -391,26 +389,23 @@ function emojiBandeira(code = "") {
         );
     }
 
-    const agora = new Date();
     const agoraBR = new Date(
-        agora.toLocaleString("en-US", {
+        new Date().toLocaleString("en-US", {
             timeZone: "America/Sao_Paulo"
         })
     );
 
-    // 📅 filtra jogos do dia (BRASILIA)
-    let jogosHoje = jogos
+    // 📅 filtra jogos do dia (BR)
+    const jogosHoje = jogos
         .map(j => ({
             ...j,
             data: toBrasilia(j.Date)
         }))
-        .filter(j => {
-            return (
-                j.data.getDate() === agoraBR.getDate() &&
-                j.data.getMonth() === agoraBR.getMonth() &&
-                j.data.getFullYear() === agoraBR.getFullYear()
-            );
-        })
+        .filter(j =>
+            j.data.getDate() === agoraBR.getDate() &&
+            j.data.getMonth() === agoraBR.getMonth() &&
+            j.data.getFullYear() === agoraBR.getFullYear()
+        )
         .sort((a, b) => a.data - b.data);
 
     if (!jogosHoje.length) {
@@ -421,22 +416,17 @@ function emojiBandeira(code = "") {
 
     for (const game of jogosHoje) {
 
-        // 🇧🇷 nomes corretos (SEM inglês)
+        // 🏳️ nomes corretos (FIFA)
         const home = game.Home?.TeamName?.[0]?.Description || "Time A";
         const away = game.Away?.TeamName?.[0]?.Description || "Time B";
 
-        // 🇧🇷 códigos de país (pra emoji certo)
-        const homeCode = game.Home?.IdCountry;
-        const awayCode = game.Away?.IdCountry;
+        // 🏳️ códigos ISO reais
+        const homeFlag = emojiBandeira(game.Home?.IdCountry);
+        const awayFlag = emojiBandeira(game.Away?.IdCountry);
 
-        const homeFlag = emojiBandeira(homeCode);
-        const awayFlag = emojiBandeira(awayCode);
-
-        // ⚽ placar
         const homeScore = game.Home?.Score;
         const awayScore = game.Away?.Score;
 
-        // 🕒 minuto do jogo (se tiver)
         const minute = game.MatchTime || null;
 
         let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
@@ -446,7 +436,7 @@ function emojiBandeira(code = "") {
             linha += ` 🔴 AO VIVO (${minute})`;
         }
 
-        // 🏁 placar
+        // ⚽ placar
         if (homeScore !== null && awayScore !== null) {
             linha += `\n${homeScore} - ${awayScore}`;
         }
