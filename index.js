@@ -458,64 +458,55 @@ if (comando === "!copa") {
 // !COPA AO VIVO (COM MINUTO)
 // =========================
 
-if (comando === "!copalive") {
+if ((message.body || "").toLowerCase().trim() === "!copalive") {
 
-    const res = await axios.get("https://worldcup26.ir/get/games");
-    const jogos = res.data.games || [];
+  const res = await axios.get(
+    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  );
 
-    const aoVivo = jogos.filter(j => {
+  const jogos = res.data.Results || [];
 
-        const status = (j.status || "").toUpperCase();
+  function emojiBandeira(code = "") {
+    if (!code) return "🏳️";
+    const c = code.toUpperCase().slice(0, 2);
 
-        return (
-            status.includes("LIVE") ||
-            status.includes("IN PLAY") ||
-            status.includes("ONGOING") ||
-            j.finished === false ||
-            j.is_live === true
-        );
-    });
+    return c
+      .split("")
+      .map(l => String.fromCodePoint(127397 + l.charCodeAt()))
+      .join("");
+  }
 
-    if (!aoVivo.length) {
-        return message.reply("⚽ Nenhum jogo ao vivo no momento.");
-    }
+  const aoVivo = jogos
+    .filter(j => j.MatchTime && !j.HomeTeamScore === null)
+    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-    let texto = "🔴 COPA AO VIVO\n\n";
+  if (!aoVivo.length) {
+    return message.reply("⚽ Nenhum jogo ao vivo agora.");
+  }
 
-    for (const game of aoVivo) {
+  let texto = "🔴 COPA DO MUNDO 2026 (AO VIVO)\n\n";
 
-        const home = getPais(game.home_team_name_en || "Unknown");
-        const away = getPais(game.away_team_name_en || "Unknown");
+  for (const game of aoVivo) {
 
-        const homeFlag = emojiBandeira(home.code);
-        const awayFlag = emojiBandeira(away.code);
+    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
+    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
 
-        const homeScore = game.home_score ?? 0;
-        const awayScore = game.away_score ?? 0;
+    const homeFlag = emojiBandeira(game.Home?.IdCountry);
+    const awayFlag = emojiBandeira(game.Away?.IdCountry);
 
-        // =========================
-        // ⏱ MINUTO DO JOGO (vários formatos)
-        // =========================
-        let minuto =
-            game.elapsed ??
-            game.minute ??
-            game.time?.elapsed ??
-            game.status_time ??
-            null;
+    const homeScore = game.Home?.Score ?? 0;
+    const awayScore = game.Away?.Score ?? 0;
 
-        if (typeof minuto === "string") {
-            // tenta extrair número tipo "67'" ou "67 min"
-            const match = minuto.match(/\d+/);
-            minuto = match ? match[0] : null;
-        }
+    const minute = game.MatchTime || "0'";
 
-        const minutoTexto = minuto ? `${minuto}'` : "AO VIVO";
+    let linha = `${homeFlag} ${home} vs ${away} ${awayFlag}`;
+    linha += ` 🔴 AO VIVO (${minute})`;
+    linha += `\n${homeScore} - ${awayScore}`;
 
-        texto += `${homeFlag} ${home.nome} ${homeScore} x ${awayScore} ${away.nome} ${awayFlag}\n`;
-        texto += `⏱ ${minutoTexto}\n\n`;
-    }
+    texto += linha + "\n\n";
+  }
 
-    return message.reply(texto);
+  return message.reply(texto);
 }
 
 // =========================
