@@ -8,6 +8,21 @@ const sharp = require('sharp');
 const path = require('path');
 
 // =========================
+// FUNÇÃO AO VIVO (GLOBAL)
+// =========================
+
+function isLive(game) {
+  const home = game.HomeTeamScore;
+  const away = game.AwayTeamScore;
+  const minute = game.MatchTime;
+
+  const started = minute && minute.includes("'");
+  const notFinished = game.MatchStatus === 0;
+
+  return started && notFinished;
+}
+
+// =========================
 // COPA
 // =========================
 
