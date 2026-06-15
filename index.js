@@ -371,6 +371,7 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
+
 // =========================
 // !COPA (FIFA - BRASÍLIA)
 // =========================
@@ -378,108 +379,137 @@ client.on('message', async message => {
 if (comando === "!copa") {
 
 const res = await axios.get(
-"https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
 );
 
 const jogos = res.data.Results || [];
 
+// API externa (FORA DO LOOP 👇)
+const res2 = await axios.get("https://worldcup26.ir/get/games");
+const jogosApi = res2.data.games || [];
+
+// =========================
+// BRASILIA TIME
+// =========================
 function toBrasilia(dateStr) {
-return new Date(
-new Date(dateStr).toLocaleString("en-US", {
-timeZone: "America/Sao_Paulo"
-})
-);
+  return new Date(
+    new Date(dateStr).toLocaleString("en-US", {
+      timeZone: "America/Sao_Paulo"
+    })
+  );
 }
 
 const agoraBR = new Date(
-new Date().toLocaleString("en-US", {
-timeZone: "America/Sao_Paulo"
-})
+  new Date().toLocaleString("en-US", {
+    timeZone: "America/Sao_Paulo"
+  })
 );
 
+// =========================
+// FILTRA JOGOS DO DIA
+// =========================
 const jogosHoje = jogos
-.map(j => ({ ...j, data: toBrasilia(j.Date) }))
-.filter(j =>
-j.data.getDate() === agoraBR.getDate() &&
-j.data.getMonth() === agoraBR.getMonth() &&
-j.data.getFullYear() === agoraBR.getFullYear()
-)
-.sort((a, b) => a.data - b.data);
+  .map(j => ({ ...j, data: toBrasilia(j.Date) }))
+  .filter(j =>
+    j.data.getDate() === agoraBR.getDate() &&
+    j.data.getMonth() === agoraBR.getMonth() &&
+    j.data.getFullYear() === agoraBR.getFullYear()
+  )
+  .sort((a, b) => a.data - b.data);
 
 if (!jogosHoje.length) {
-return message.reply("⚽ Nenhum jogo hoje.");
+  return message.reply("⚽ Nenhum jogo hoje.");
 }
 
-function flag(code = "") {
-if (!code) return "";
-return code
-.toUpperCase()
-.slice(0, 2)
-.replace(/./g, c =>
-String.fromCodePoint(127397 + c.charCodeAt())
-);
+// =========================
+// EMOJI BANDEIRA (IGUAL !COPAGOLS)
+// =========================
+function emojiBandeira(countryCode) {
+  if (!countryCode) return "";
+
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, c =>
+      String.fromCodePoint(127397 + c.charCodeAt())
+    );
 }
 
+function getPais(nome) {
+  let code = countries.getAlpha2Code(nome, "pt");
+  if (!code) code = countries.getAlpha2Code(nome, "en");
+
+  if (!code) return { nome, code: null };
+
+  const nomePt =
+    countries.getName(code, "pt", { select: "official" }) || nome;
+
+  return { nome: nomePt, code };
+}
+
+// =========================
+// MENSAGEM
+// =========================
 let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-  const res2 = await axios.get("https://worldcup26.ir/get/games");
-const jogosApi = res2.data.games || [];
-  
-  
+// =========================
+// LOOP PRINCIPAL
+// =========================
 for (const game of jogosHoje) {
 
-const jogoExtra = jogosApi.find(j =>
-  j.home_team_name_en === game.Home?.TeamName?.[0]?.Description &&
-  j.away_team_name_en === game.Away?.TeamName?.[0]?.Description
-);
+  // pega info da API externa SEM SPAM
+  const jogoExtra = jogosApi.find(j =>
+    j.home_team_name_en === game.Home?.TeamName?.[0]?.Description &&
+    j.away_team_name_en === game.Away?.TeamName?.[0]?.Description
+  );
 
-const home = getPais(jogoExtra?.home_team_name_en || "Unknown");
-const away = getPais(jogoExtra?.away_team_name_en || "Unknown");
+  const home = getPais(jogoExtra?.home_team_name_en || "Unknown");
+  const away = getPais(jogoExtra?.away_team_name_en || "Unknown");
 
-const homeFlag = emojiBandeira(home.code);
-const awayFlag = emojiBandeira(away.code);
+  const homeFlag = emojiBandeira(home.code);
+  const awayFlag = emojiBandeira(away.code);
 
-const inicio = game.data;
+  const homeName =
+    game.Home?.TeamName?.[0]?.Description || "Time A";
+  const awayName =
+    game.Away?.TeamName?.[0]?.Description || "Time B";
 
-const minutosPassados =
-(agoraBR - inicio) / 60000;
+  const inicio = game.data;
 
-const aoVivo =
-minutosPassados >= 0 &&
-minutosPassados <= 120;
+  const minutosPassados = (agoraBR - inicio) / 60000;
 
-const encerrado =
-minutosPassados > 120;
+  const aoVivo =
+    minutosPassados >= 0 &&
+    minutosPassados <= 120;
 
-const horaBR = inicio.toLocaleTimeString(
-"pt-BR",
-{
-hour: "2-digit",
-minute: "2-digit"
-}
-);
+  const encerrado =
+    minutosPassados > 120;
 
-const homeScore = game.HomeTeamScore;
-const awayScore = game.AwayTeamScore;
+  const horaBR = inicio.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 
-let linha =
-`⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
+  const homeScore = game.HomeTeamScore;
+  const awayScore = game.AwayTeamScore;
 
-if (aoVivo) {
-  linha += " 🔴 AO VIVO";
-}
-else if (!encerrado) {
-  linha += ` 🕒 ${horaBR}`;
-}
+  let linha =
+    `⚽ ${homeFlag} ${homeName} vs ${awayName} ${awayFlag}`;
 
-if (homeScore !== null && awayScore !== null) {
-  linha += `\n${homeScore} - ${awayScore}`;
-}
+  if (aoVivo) {
+    linha += " 🔴 AO VIVO";
+  } else if (!encerrado) {
+    linha += ` 🕒 ${horaBR}`;
+  }
 
-texto += linha + "\n\n";
+  if (homeScore !== null && awayScore !== null) {
+    linha += `\n${homeScore} - ${awayScore}`;
+  }
+
+  texto += linha + "\n\n";
 }
 
 return message.reply(texto);
+
 }
 
 // =========================
