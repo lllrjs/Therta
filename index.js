@@ -489,7 +489,17 @@ if (message.body?.toLowerCase().trim() === "!copalive") {
   return !isNaN(minute) && minute > 0;
   }
   
-  const aoVivo = jogos.filter(isLive);
+jogos.forEach(game => {
+  console.log(
+    game.Home?.TeamName?.[0]?.Description,
+    "| status:",
+    game.MatchStatus,
+    "| tempo:",
+    game.MatchTime
+  );
+});
+
+const aoVivo = jogos.filter(isLive);
 
   if (!aoVivo.length) {
     return message.reply("⚽ Nenhum jogo ao vivo agora.");
