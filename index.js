@@ -414,15 +414,6 @@ if (comando === "!copa") {
       .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
   }
 
-
-
-  const minute = parseInt(
-    (game.MatchTime || "").replace(/\D/g, "")
-  );
-
-  return !isNaN(minute) && minute > 0;
-  }
-
   let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
   for (const game of jogosHoje) {
