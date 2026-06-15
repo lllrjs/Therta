@@ -424,16 +424,19 @@ let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
 for (const game of jogosHoje) {
 
-const home =
-game.Home?.TeamName?.[0]?.Description || "Time A";
+const res2 = await axios.get("https://worldcup26.ir/get/games");
+const jogosApi = res2.data.games || [];
 
-const away =
-game.Away?.TeamName?.[0]?.Description || "Time B";
+const jogoExtra = jogosApi.find(j =>
+  j.home_team_name_en === game.Home?.TeamName?.[0]?.Description &&
+  j.away_team_name_en === game.Away?.TeamName?.[0]?.Description
+);
 
-// ===== BANDEIRAS IGUAIS AO !COPAGOLS =====
+const home = getPais(jogoExtra?.home_team_name_en || "Unknown");
+const away = getPais(jogoExtra?.away_team_name_en || "Unknown");
 
-const homeFlag = flag(game.Home?.IdCountry);
-const awayFlag = flag(game.Away?.IdCountry);
+const homeFlag = emojiBandeira(home.code);
+const awayFlag = emojiBandeira(away.code);
 
 const inicio = game.data;
 
