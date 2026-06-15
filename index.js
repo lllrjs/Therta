@@ -532,7 +532,16 @@ const aoVivo = jogos.filter(isLive);
 
   return message.reply(texto);
 }
-  
+  let debug = "";
+
+for (const game of jogos.slice(0, 20)) {
+  debug +=
+    `${game.Home?.TeamName?.[0]?.Description} | ` +
+    `status=${game.MatchStatus} | ` +
+    `tempo=${game.MatchTime}\n`;
+}
+
+return message.reply(debug);
 // =========================
 // !COPA ACABADOS (RESULTADOS FINAIS)
 // =========================
