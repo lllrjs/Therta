@@ -532,6 +532,23 @@ if (comando === "!copagols") {
 }
 
   
+if (comando === "!copastatus") {
+
+  const res = await axios.get(
+    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+  );
+
+  const jogos = res.data.Results || [];
+
+  const status = [
+    ...new Set(jogos.map(j => j.MatchStatus))
+  ];
+
+  return message.reply(
+    `Status encontrados:\n${status.join(", ")}`
+  );
+}
+
   
   // =========================
 // !COPA FUTUROS (VERSÃO ESTÁVEL)
