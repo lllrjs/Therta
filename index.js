@@ -499,48 +499,6 @@ if (comando === "!copagols") {
 
     return message.reply(texto);
 }
-
-  
-// =========================
-// !COPATESTLIVE
-// =========================
-
-if (comando === "!copatestlive") {
-
-  const res = await axios.get(
-    "https://worldcup26.ir/get/games"
-  );
-
-  const jogos = res.data.games || [];
-
-  let texto = "🔍 TESTE COPA LIVE\n\n";
-
-  for (const game of jogos.slice(0, 20)) {
-
-    texto +=
-      `${game.home_team_name_en} x ${game.away_team_name_en}\n` +
-      `finished: ${game.finished}\n` +
-      `time_elapsed: ${game.time_elapsed}\n` +
-      `placar: ${game.home_score}-${game.away_score}\n\n`;
-  }
-
-  return message.reply(texto);
-}
-
-  if (comando === "!copastatus") {
-
-  const res = await axios.get(
-    "https://worldcup26.ir/get/games"
-  );
-
-  const jogos = res.data.games || [];
-
-  const status = [...new Set(
-    jogos.map(g => `${g.finished} | ${g.time_elapsed}`)
-  )];
-
-  return message.reply(status.join("\n"));
-  }
   
   // =========================
 // !COPA FUTUROS (VERSÃO ESTÁVEL)
