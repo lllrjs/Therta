@@ -364,70 +364,69 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
-
 // =========================
-// !COPA (FIFA - BRASÍLIA OK + CORRIGIDO)
+// !COPA (FIFA - BRASÍLIA)
 // =========================
 
 if (comando === "!copa") {
 
-  const res = await axios.get(
-    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
-  );
+const res = await axios.get(
+"https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+);
 
-  const jogos = res.data.Results || [];
+const jogos = res.data.Results || [];
 
-  // 🇧🇷 converter pra Brasília
-  function toBrasilia(dateStr) {
-    return new Date(
-      new Date(dateStr).toLocaleString("en-US", {
-        timeZone: "America/Sao_Paulo"
-      })
-    );
-  }
+function toBrasilia(dateStr) {
+return new Date(
+new Date(dateStr).toLocaleString("en-US", {
+timeZone: "America/Sao_Paulo"
+})
+);
+}
 
-  const agoraBR = new Date(
-    new Date().toLocaleString("en-US", {
-      timeZone: "America/Sao_Paulo"
-    })
-  );
+const agoraBR = new Date(
+new Date().toLocaleString("en-US", {
+timeZone: "America/Sao_Paulo"
+})
+);
 
-  // 🇧🇷 pega só jogos do dia (BRASILIA)
-  const jogosHoje = jogos
-    .map(j => ({ ...j, data: toBrasilia(j.Date) }))
-    .filter(j =>
-      j.data.getDate() === agoraBR.getDate() &&
-      j.data.getMonth() === agoraBR.getMonth() &&
-      j.data.getFullYear() === agoraBR.getFullYear()
-    )
-    .sort((a, b) => a.data - b.data);
+const jogosHoje = jogos
+.map(j => ({ ...j, data: toBrasilia(j.Date) }))
+.filter(j =>
+j.data.getDate() === agoraBR.getDate() &&
+j.data.getMonth() === agoraBR.getMonth() &&
+j.data.getFullYear() === agoraBR.getFullYear()
+)
+.sort((a, b) => a.data - b.data);
 
-  if (!jogosHoje.length) {
-    return message.reply("⚽ Nenhum jogo hoje.");
-  }
+if (!jogosHoje.length) {
+return message.reply("⚽ Nenhum jogo hoje.");
+}
 
-  function flag(code = "") {
-    if (!code) return "";
-    return code
-      .toUpperCase()
-      .slice(0, 2)
-      .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
-  }
+function flag(code = "") {
+if (!code) return "";
+return code
+.toUpperCase()
+.slice(0, 2)
+.replace(/./g, c =>
+String.fromCodePoint(127397 + c.charCodeAt())
+);
+}
 
-  let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
+let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-  for (const game of jogosHoje) {
+for (const game of jogosHoje) {
 
-    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
-    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
+const home =
+  game.Home?.TeamName?.[0]?.Description || "Time A";
 
-    const homeCode = game.Home?.IdCountry || "";
-    const awayCode = game.Away?.IdCountry || "";
+const away =
+  game.Away?.TeamName?.[0]?.Description || "Time B";
 
-    const homeFlag = flag(homeCode);
-    const awayFlag = flag(awayCode);
+const homeFlag = flag(game.Home?.IdCountry);
+const awayFlag = flag(game.Away?.IdCountry);
 
-    const inicio = game.data;
+const inicio = game.data;
 
 const minutosPassados =
   (agoraBR - inicio) / 60000;
@@ -436,25 +435,40 @@ const aoVivo =
   minutosPassados >= 0 &&
   minutosPassados <= 120;
 
-    const homeScore = game.HomeTeamScore;
-    const awayScore = game.AwayTeamScore;
+const encerrado =
+  minutosPassados > 120;
 
-    let linha = `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
+const horaBR = inicio.toLocaleTimeString(
+  "pt-BR",
+  {
+    hour: "2-digit",
+    minute: "2-digit"
+  }
+);
 
-  if (aoVivo) {
+const homeScore = game.HomeTeamScore;
+const awayScore = game.AwayTeamScore;
+
+let linha =
+  `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
+
+if (aoVivo) {
   linha += " 🔴 AO VIVO";
-  }
+}
+else if (!encerrado) {
+  linha += ` 🕒 ${horaBR}`;
+}
 
-    // ⚽ placar só se existir
-    if (homeScore !== null && awayScore !== null) {
-      linha += `\n${homeScore} - ${awayScore}`;
-    }
+if (homeScore !== null && awayScore !== null) {
+  linha += `\n${homeScore} - ${awayScore}`;
+}
 
-    texto += linha + "\n\n";
-  }
+texto += linha + "\n\n";
 
-  return message.reply(texto);
-            }
+}
+
+return message.reply(texto);
+}
 
 // =========================
 // !COPA ACABADOS (RESULTADOS FINAIS)
