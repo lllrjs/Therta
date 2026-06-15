@@ -414,13 +414,7 @@ if (comando === "!copa") {
       .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
   }
 
-  // 🔴 detecta ao vivo corretamente (SEM erro de jogo futuro)
-  function isLive(game) {
-  console.log(
-    game.Home?.TeamName?.[0]?.Description,
-    "| status =", game.MatchStatus,
-    "| tempo =", game.MatchTime
-  );
+
 
   const minute = parseInt(
     (game.MatchTime || "").replace(/\D/g, "")
@@ -442,15 +436,23 @@ if (comando === "!copa") {
     const homeFlag = flag(homeCode);
     const awayFlag = flag(awayCode);
 
+    const inicio = game.data;
+
+const minutosPassados =
+  (agoraBR - inicio) / 60000;
+
+const aoVivo =
+  minutosPassados >= 0 &&
+  minutosPassados <= 120;
+
     const homeScore = game.HomeTeamScore;
     const awayScore = game.AwayTeamScore;
 
     let linha = `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
 
-    // 🔴 AO VIVO só se for REALMENTE live
-    if (isLive(game)) {
-      linha += ` 🔴 AO VIVO (${game.MatchTime})`;
-    }
+  if (aoVivo) {
+  linha += " 🔴 AO VIVO";
+  }
 
     // ⚽ placar só se existir
     if (homeScore !== null && awayScore !== null) {
@@ -463,30 +465,6 @@ if (comando === "!copa") {
   return message.reply(texto);
             }
 
-// =========================
-// !COPALIVE (AO VIVO REAL)
-// =========================
-if (message.body?.toLowerCase().trim() === "!copalive") {
-
-  const res = await axios.get(
-    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
-  );
-
-  const jogos = res.data.Results || [];
-
-  let debug = "";
-
-  for (const game of jogos.slice(0, 30)) {
-
-    const home =
-      game.Home?.TeamName?.[0]?.Description || "???";
-
-    debug +=
-      `${home} | status=${game.MatchStatus} | tempo=${game.MatchTime}\n`;
-  }
-
-  return message.reply(debug);
-}
 // =========================
 // !COPA ACABADOS (RESULTADOS FINAIS)
 // =========================
