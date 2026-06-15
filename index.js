@@ -418,53 +418,57 @@ let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 for (const game of jogosHoje) {
 
 const home =
-  game.Home?.TeamName?.[0]?.Description || "Time A";
+game.Home?.TeamName?.[0]?.Description || "Time A";
 
 const away =
-  game.Away?.TeamName?.[0]?.Description || "Time B";
+game.Away?.TeamName?.[0]?.Description || "Time B";
 
-const homeFlag = flag(game.Home?.IdCountry);
-const awayFlag = flag(game.Away?.IdCountry);
+// ===== BANDEIRAS IGUAIS AO !COPAGOLS =====
+
+const homePais = getPais(home);
+const awayPais = getPais(away);
+
+const homeFlag = emojiBandeira(homePais.code);
+const awayFlag = emojiBandeira(awayPais.code);
 
 const inicio = game.data;
 
 const minutosPassados =
-  (agoraBR - inicio) / 60000;
+(agoraBR - inicio) / 60000;
 
 const aoVivo =
-  minutosPassados >= 0 &&
-  minutosPassados <= 120;
+minutosPassados >= 0 &&
+minutosPassados <= 120;
 
 const encerrado =
-  minutosPassados > 120;
+minutosPassados > 120;
 
 const horaBR = inicio.toLocaleTimeString(
-  "pt-BR",
-  {
-    hour: "2-digit",
-    minute: "2-digit"
-  }
+"pt-BR",
+{
+hour: "2-digit",
+minute: "2-digit"
+}
 );
 
 const homeScore = game.HomeTeamScore;
 const awayScore = game.AwayTeamScore;
 
 let linha =
-  `⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
+"⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}";
 
 if (aoVivo) {
-  linha += " 🔴 AO VIVO";
+linha += " 🔴 AO VIVO";
 }
 else if (!encerrado) {
-  linha += ` 🕒 ${horaBR}`;
+linha += " 🕒 ${horaBR}";
 }
 
 if (homeScore !== null && awayScore !== null) {
-  linha += `\n${homeScore} - ${awayScore}`;
+linha += "\n${homeScore} - ${awayScore}";
 }
 
 texto += linha + "\n\n";
-
 }
 
 return message.reply(texto);
