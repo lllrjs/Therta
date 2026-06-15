@@ -416,11 +416,17 @@ if (comando === "!copa") {
 
   // 🔴 detecta ao vivo corretamente (SEM erro de jogo futuro)
   function isLive(game) {
-    const hasMinute = game.MatchTime && game.MatchTime.includes("'");
-    const notFinished =
-      game.HomeTeamScore === null || game.AwayTeamScore === null;
+  console.log(
+    game.Home?.TeamName?.[0]?.Description,
+    "| status =", game.MatchStatus,
+    "| tempo =", game.MatchTime
+  );
 
-    return hasMinute && notFinished;
+  const minute = parseInt(
+    (game.MatchTime || "").replace(/\D/g, "")
+  );
+
+  return !isNaN(minute) && minute > 0;
   }
 
   let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
@@ -470,13 +476,19 @@ if (message.body?.toLowerCase().trim() === "!copalive") {
   const jogos = res.data.Results || [];
 
   function isLive(game) {
-    const hasMinute = game.MatchTime && game.MatchTime.includes("'");
-    const notFinished =
-      game.HomeTeamScore === null || game.AwayTeamScore === null;
+  console.log(
+    game.Home?.TeamName?.[0]?.Description,
+    "| status =", game.MatchStatus,
+    "| tempo =", game.MatchTime
+  );
 
-    return hasMinute && notFinished;
+  const minute = parseInt(
+    (game.MatchTime || "").replace(/\D/g, "")
+  );
+
+  return !isNaN(minute) && minute > 0;
   }
-
+  
   const aoVivo = jogos.filter(isLive);
 
   if (!aoVivo.length) {
