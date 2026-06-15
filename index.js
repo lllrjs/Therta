@@ -455,20 +455,17 @@ const homeScore = game.HomeTeamScore;
 const awayScore = game.AwayTeamScore;
 
 let linha =
-"⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}";
+`⚽ ${homeFlag} ${home} vs ${away} ${awayFlag}`;
 
 if (aoVivo) {
-linha += " 🔴 AO VIVO";
+  linha += " 🔴 AO VIVO";
 }
 else if (!encerrado) {
-linha += " 🕒 ${horaBR}";
+  linha += ` 🕒 ${horaBR}`;
 }
 
 if (homeScore !== null && awayScore !== null) {
-linha += "\n${homeScore} - ${awayScore}";
-}
-
-texto += linha + "\n\n";
+  linha += `\n${homeScore} - ${awayScore}`;
 }
 
 return message.reply(texto);
