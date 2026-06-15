@@ -557,6 +557,21 @@ if (comando === "!copatestlive") {
 
   return message.reply(texto);
 }
+
+  if (comando === "!copastatus") {
+
+  const res = await axios.get(
+    "https://worldcup26.ir/get/games"
+  );
+
+  const jogos = res.data.games || [];
+
+  const status = [...new Set(
+    jogos.map(g => `${g.finished} | ${g.time_elapsed}`)
+  )];
+
+  return message.reply(status.join("\n"));
+  }
   
   // =========================
 // !COPA FUTUROS (VERSÃO ESTÁVEL)
