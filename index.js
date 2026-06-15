@@ -422,10 +422,11 @@ String.fromCodePoint(127397 + c.charCodeAt())
 
 let texto = "🏆 Copa do Mundo 2026 (Jogos de hoje)\n\n";
 
-for (const game of jogosHoje) {
-
-const res2 = await axios.get("https://worldcup26.ir/get/games");
+  const res2 = await axios.get("https://worldcup26.ir/get/games");
 const jogosApi = res2.data.games || [];
+  
+  
+for (const game of jogosHoje) {
 
 const jogoExtra = jogosApi.find(j =>
   j.home_team_name_en === game.Home?.TeamName?.[0]?.Description &&
