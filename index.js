@@ -532,23 +532,31 @@ if (comando === "!copagols") {
 }
 
   
-if (comando === "!copastatus") {
+// =========================
+// !COPATESTLIVE
+// =========================
+
+if (comando === "!copatestlive") {
 
   const res = await axios.get(
-    "https://api.fifa.com/api/v3/calendar/matches?language=pt&count=500&idSeason=285023"
+    "https://worldcup26.ir/get/games"
   );
 
-  const jogos = res.data.Results || [];
+  const jogos = res.data.games || [];
 
-  const status = [
-    ...new Set(jogos.map(j => j.MatchStatus))
-  ];
+  let texto = "🔍 TESTE COPA LIVE\n\n";
 
-  return message.reply(
-    `Status encontrados:\n${status.join(", ")}`
-  );
+  for (const game of jogos.slice(0, 20)) {
+
+    texto +=
+      `${game.home_team_name_en} x ${game.away_team_name_en}\n` +
+      `finished: ${game.finished}\n` +
+      `time_elapsed: ${game.time_elapsed}\n` +
+      `placar: ${game.home_score}-${game.away_score}\n\n`;
+  }
+
+  return message.reply(texto);
 }
-
   
   // =========================
 // !COPA FUTUROS (VERSÃO ESTÁVEL)
