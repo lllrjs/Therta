@@ -22,9 +22,16 @@ countries.registerLocale(require("i18n-iso-countries/langs/en.json"));
 // =========================
 
 function getPais(nome) {
-  const code = countries.getAlpha2Code(nome, "en");
 
-  if (!code) return { nome, code: null };
+  let code = countries.getAlpha2Code(nome, "pt");
+
+  if (!code) {
+    code = countries.getAlpha2Code(nome, "en");
+  }
+
+  if (!code) {
+    return { nome, code: null };
+  }
 
   const nomePt =
     countries.getName(code, "pt", { select: "official" }) || nome;
@@ -425,11 +432,8 @@ game.Away?.TeamName?.[0]?.Description || "Time B";
 
 // ===== BANDEIRAS IGUAIS AO !COPAGOLS =====
 
-const homePais = getPais(home);
-const awayPais = getPais(away);
-
-const homeFlag = emojiBandeira(homePais.code);
-const awayFlag = emojiBandeira(awayPais.code);
+const homeFlag = flag(game.Home?.IdCountry);
+const awayFlag = flag(game.Away?.IdCountry);
 
 const inicio = game.data;
 
