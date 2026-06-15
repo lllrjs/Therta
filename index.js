@@ -466,7 +466,6 @@ if (comando === "!copa") {
 // =========================
 // !COPALIVE (AO VIVO REAL)
 // =========================
-
 if (message.body?.toLowerCase().trim() === "!copalive") {
 
   const res = await axios.get(
@@ -477,16 +476,17 @@ if (message.body?.toLowerCase().trim() === "!copalive") {
 
   let debug = "";
 
-for (const game of jogos.slice(0, 30)) {
+  for (const game of jogos.slice(0, 30)) {
 
-  const home =
-    game.Home?.TeamName?.[0]?.Description || "???";
+    const home =
+      game.Home?.TeamName?.[0]?.Description || "???";
 
-  debug +=
-    `${home} | status=${game.MatchStatus} | tempo=${game.MatchTime}\n`;
+    debug +=
+      `${home} | status=${game.MatchStatus} | tempo=${game.MatchTime}\n`;
+  }
+
+  return message.reply(debug);
 }
-
-return message.reply(debug);
 // =========================
 // !COPA ACABADOS (RESULTADOS FINAIS)
 // =========================
