@@ -475,70 +475,15 @@ if (message.body?.toLowerCase().trim() === "!copalive") {
 
   const jogos = res.data.Results || [];
 
-  function isLive(game) {
-  console.log(
-    game.Home?.TeamName?.[0]?.Description,
-    "| status =", game.MatchStatus,
-    "| tempo =", game.MatchTime
-  );
-
-  const minute = parseInt(
-    (game.MatchTime || "").replace(/\D/g, "")
-  );
-
-  return !isNaN(minute) && minute > 0;
-  }
-  
-jogos.forEach(game => {
-  console.log(
-    game.Home?.TeamName?.[0]?.Description,
-    "| status:",
-    game.MatchStatus,
-    "| tempo:",
-    game.MatchTime
-  );
-});
-
-const aoVivo = jogos.filter(isLive);
-
-  if (!aoVivo.length) {
-    return message.reply("⚽ Nenhum jogo ao vivo agora.");
-  }
-
-  function flag(code = "") {
-    if (!code) return "";
-    return code
-      .toUpperCase()
-      .slice(0, 2)
-      .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
-  }
-
-  let texto = "🔴 COPA DO MUNDO 2026 (AO VIVO)\n\n";
-
-  for (const game of aoVivo) {
-
-    const home = game.Home?.TeamName?.[0]?.Description || "Time A";
-    const away = game.Away?.TeamName?.[0]?.Description || "Time B";
-
-    const homeFlag = flag(game.Home?.IdCountry);
-    const awayFlag = flag(game.Away?.IdCountry);
-
-    const homeScore = game.HomeTeamScore;
-    const awayScore = game.AwayTeamScore;
-
-    texto += `⚽ ${homeFlag} ${home} vs ${awayFlag} ${away}\n`;
-    texto += `${homeScore} - ${awayScore} 🔴 AO VIVO (${game.MatchTime})\n\n`;
-  }
-
-  return message.reply(texto);
-}
   let debug = "";
 
-for (const game of jogos.slice(0, 20)) {
+for (const game of jogos.slice(0, 30)) {
+
+  const home =
+    game.Home?.TeamName?.[0]?.Description || "???";
+
   debug +=
-    `${game.Home?.TeamName?.[0]?.Description} | ` +
-    `status=${game.MatchStatus} | ` +
-    `tempo=${game.MatchTime}\n`;
+    `${home} | status=${game.MatchStatus} | tempo=${game.MatchTime}\n`;
 }
 
 return message.reply(debug);
