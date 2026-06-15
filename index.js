@@ -468,6 +468,9 @@ if (homeScore !== null && awayScore !== null) {
   linha += `\n${homeScore} - ${awayScore}`;
 }
 
+texto += linha + "\n\n";
+}
+
 return message.reply(texto);
 }
 
