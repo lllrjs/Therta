@@ -608,26 +608,22 @@ if (message.hasQuotedMsg) {
             `🎞️ Mídia: ${info.width}x${info.height} | FPS: ${info.fps}`
         );
 
-
-        // ==================================================
-// DEFINIÇÃO DO FPS
 // ==================================================
-
-const maxSize = 500 * 1024;
+// FPS
+// ==================================================
 
 let targetFPS;
 
-// Menos de 20 FPS → sobe para 20
-if (info.fps < 20) {
+// Mínimo permitido
+const minFPS = 20;
 
-    targetFPS = 20;
+// Até 29 FPS → mantém o FPS original
+if (info.fps < 30) {
 
-}
-
-// 20–29 FPS → mantém
-else if (info.fps < 30) {
-
-    targetFPS = Math.round(info.fps);
+    targetFPS = Math.max(
+        20,
+        Math.round(info.fps)
+    );
 
 }
 
@@ -637,11 +633,18 @@ else {
     targetFPS = 30;
 }
 
-targetFPS = Math.max(20, targetFPS);
-
 console.log(
     `🎞️ FPS original: ${info.fps} | FPS inicial: ${targetFPS}`
 );
+
+
+// ==================================================
+// LIMITE
+// ==================================================
+
+// Alvo abaixo de 1 MB para deixar margem
+const maxSize =
+    950 * 1024;
 
 
 // ==================================================
@@ -661,39 +664,12 @@ let stats;
 
 
 // ==================================================
-// PRIMEIRA TENTATIVA
+// TENTATIVAS
 // ==================================================
 
-await createSticker(
-    inputFile,
-    output,
-    mode,
-    targetFPS,
-    quality
-);
+for (const q of qualidades) {
 
-stats = fs.statSync(output);
-
-console.log(
-    `🎨 ${targetFPS} FPS / Q${quality} → ${(stats.size / 1024).toFixed(1)} KB`
-);
-
-
-// ==================================================
-// REDUZ QUALIDADE MANTENDO FPS
-// ==================================================
-
-for (let i = 1; i < qualidades.length; i++) {
-
-    if (stats.size <= maxSize) {
-        break;
-    }
-
-    quality = qualidades[i];
-
-    console.log(
-        `⚠️ Ainda grande. Tentando Q${quality}...`
-    );
+    quality = q;
 
     await createSticker(
         inputFile,
@@ -703,16 +679,21 @@ for (let i = 1; i < qualidades.length; i++) {
         quality
     );
 
-    stats = fs.statSync(output);
+    stats =
+        fs.statSync(output);
 
     console.log(
         `🎨 ${targetFPS} FPS / Q${quality} → ${(stats.size / 1024).toFixed(1)} KB`
     );
+
+    if (stats.size <= maxSize) {
+        break;
+    }
 }
 
 
 // ==================================================
-// ÚLTIMO RECURSO → 20 FPS
+// SE AINDA ESTÁ GRANDE → 20 FPS
 // ==================================================
 
 if (
@@ -720,30 +701,42 @@ if (
     targetFPS > 20
 ) {
 
+    console.log(
+        "⚠️ 30 FPS não coube. Reduzindo para 20 FPS..."
+    );
+
     targetFPS = 20;
 
-    console.log(
-        "⚠️ Qualidade mínima atingida. Tentando 20 FPS..."
-    );
 
-    await createSticker(
-        inputFile,
-        output,
-        mode,
-        20,
-        40
-    );
+    // Tenta novamente começando por qualidade 40
+    for (const q of [40, 30, 20]) {
 
-    stats = fs.statSync(output);
+        quality = q;
 
-    console.log(
-        `🎨 20 FPS / Q40 → ${(stats.size / 1024).toFixed(1)} KB`
-    );
+        await createSticker(
+            inputFile,
+            output,
+            mode,
+            targetFPS,
+            quality
+        );
+
+        stats =
+            fs.statSync(output);
+
+        console.log(
+            `🎨 ${targetFPS} FPS / Q${quality} → ${(stats.size / 1024).toFixed(1)} KB`
+        );
+
+        if (stats.size <= maxSize) {
+            break;
+        }
+    }
 }
 
 
 // ==================================================
-// VERIFICAÇÃO
+// VERIFICAÇÃO FINAL
 // ==================================================
 
 if (!fs.existsSync(output)) {
@@ -753,7 +746,9 @@ if (!fs.existsSync(output)) {
     );
 }
 
-stats = fs.statSync(output);
+stats =
+    fs.statSync(output);
+
 
 if (stats.size <= 0) {
 
@@ -762,10 +757,22 @@ if (stats.size <= 0) {
     );
 }
 
+
+// ==================================================
+// LIMITE ABSOLUTO
+// ==================================================
+
+if (stats.size > 1024 * 1024) {
+
+    throw new Error(
+        `Figurinha excedeu 1 MB: ${(stats.size / 1024).toFixed(1)} KB`
+    );
+}
+
+
 console.log(
     `✅ Figurinha final: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS | Q${quality}`
 );
-    
 
         // ==================================================
         // ENVIA
