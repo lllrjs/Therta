@@ -7,6 +7,10 @@ const axios = require('axios');
 const sharp = require('sharp');
 const path = require('path');
 
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
+const os = require("os");
 
 
 async function gerarColagem(buffers, output = "colagem.jpg") {
@@ -168,6 +172,189 @@ let termoAtivo = true;
 let jogosTermo = {};
 let termoRanking = {};
 
+// ==================== STICKER ====================
+
+async function getMediaInfo(input) {
+    const { stdout } = await execFileAsync("ffprobe", [
+        "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=width,height,r_frame_rate,avg_frame_rate",
+        "-show_entries", "format=duration",
+        "-of", "json",
+        input
+    ]);
+
+    const data = JSON.parse(stdout);
+    const stream = data.streams[0];
+
+    function parseFPS(value) {
+        if (!value || value === "0/0") return 0;
+
+        const [num, den] = value.split("/").map(Number);
+        return den ? num / den : Number(value);
+    }
+
+    const fps =
+        parseFPS(stream.avg_frame_rate) ||
+        parseFPS(stream.r_frame_rate);
+
+    return {
+        width: Number(stream.width),
+        height: Number(stream.height),
+        fps,
+        duration: Number(data.format?.duration || 0)
+    };
+}
+
+
+async function createSticker(input, output, crop = false, fps = null) {
+    const info = await getMediaInfo(input);
+
+    let videoFilter;
+
+    if (crop) {
+        // Corta o centro para ficar 1:1
+        videoFilter =
+            "crop=min(iw\\,ih):min(iw\\,ih),scale=512:512";
+    } else {
+        // Mantém a proporção original
+        videoFilter =
+            "scale=512:512:force_original_aspect_ratio=decrease";
+    }
+
+    const args = [
+        "-y",
+        "-i", input,
+
+        "-vf", videoFilter,
+
+        "-c:v", "libwebp",
+
+        "-loop", "0",
+
+        "-an",
+
+        "-threads", "0",
+
+        "-compression_level", "6",
+
+        "-q:v", "70"
+    ];
+
+    // Só força FPS quando foi solicitado.
+    // Abaixo de 60 FPS, o FPS original é mantido.
+    if (fps) {
+        args.push("-r", String(fps));
+    }
+
+    args.push(output);
+
+    await execFileAsync("ffmpeg", args);
+
+    return info;
+}
+
+
+async function makeSticker(message, crop = false) {
+    let mediaMessage = message;
+
+    // Se o comando foi enviado respondendo a uma mídia,
+    // usa a mensagem respondida.
+    if (message.hasQuotedMsg) {
+        const quoted = await message.getQuotedMessage();
+
+        if (quoted.hasMedia) {
+            mediaMessage = quoted;
+        }
+    }
+
+    if (!mediaMessage.hasMedia) {
+        await message.reply(
+            "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
+        );
+        return;
+    }
+
+    const media = await mediaMessage.downloadMedia();
+
+    if (!media) {
+        await message.reply(
+            "❌ Não consegui baixar a mídia."
+        );
+        return;
+    }
+
+    const tempDir = os.tmpdir();
+
+    const input = path.join(
+        tempDir,
+        `therta_input_${Date.now()}`
+    );
+
+    const output = path.join(
+        tempDir,
+        `therta_sticker_${Date.now()}.webp`
+    );
+
+    try {
+        const extension =
+            media.mimetype === "image/gif"
+                ? ".gif"
+                : media.mimetype.startsWith("video/")
+                    ? ".mp4"
+                    : media.mimetype.startsWith("image/")
+                        ? ".png"
+                        : null;
+
+        if (!extension) {
+            await message.reply(
+                "❌ Esse tipo de mídia não é suportado."
+            );
+            return;
+        }
+
+        const inputFile = input + extension;
+
+        // Salva a mídia recebida
+        fs.writeFileSync(
+            inputFile,
+            Buffer.from(media.data, "base64")
+        );
+
+        const info = await getMediaInfo(inputFile);
+
+        // ==================================================
+        // DEFINIÇÃO DO FPS
+        // ==================================================
+
+        let targetFPS = null;
+
+        if (info.fps >= 60) {
+            // Primeiro tenta 45 FPS
+            targetFPS = 45;
+        }
+
+        // ==================================================
+        // PRIMEIRA CONVERSÃO
+        // ==================================================
+
+        await createSticker(
+            inputFile,
+            output,
+            crop,
+            targetFPS
+        );
+
+        // ==================================================
+        // VERIFICA TAMANHO
+        // ==================================================
+
+        const maxSize = 1024 * 1024; // 1 MB
+
+        let stats = fs.statSync(output);
+
+        // Se era 60+ FPS e ficou grande demais,
+        // recria
 
 // ===== FM REAÇÃO MAP =====
 let lastMusicMessage = {};
