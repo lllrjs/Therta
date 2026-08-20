@@ -593,42 +593,156 @@ if (message.hasQuotedMsg) {
 
 
         // ==================================================
-        // DEFINIÇÃO DO FPS
-        // ==================================================
+// DEFINIÇÃO DO FPS
+// ==================================================
 
-        let targetFPS;
+let targetFPS;
+
+// Nunca permitir menos de 20 FPS
+const minFPS = 20;
+
+// FPS inicial
+if (info.fps >= 60) {
+
+    // Vídeos de 60 FPS começam em 45
+    targetFPS = 45;
+
+} else if (info.fps >= 20) {
+
+    // Mantém o FPS original
+    targetFPS = Math.round(info.fps);
+
+} else {
+
+    // Qualquer coisa abaixo de 20 sobe para 20
+    targetFPS = 20;
+}
+
+targetFPS = Math.max(
+    minFPS,
+    targetFPS
+);
+
+console.log(
+    `🎞️ FPS original: ${info.fps} | FPS inicial: ${targetFPS}`
+);
 
 
-        /*
-         * 60 FPS ou mais:
-         *
-         * começa em 45 FPS.
-         *
-         * Se ficar grande:
-         * 30 FPS.
-         *
-         * Se ainda ficar grande:
-         * 20 FPS.
-         */
+// ==================================================
+// CONVERSÃO + LIMITE DE 1 MB
+// ==================================================
 
-        if (info.fps >= 60) {
+const maxSize =
+    1024 * 1024;
 
-            targetFPS = 45;
-        }
+let stats;
 
 
-        /*
-         * Entre 20 e 59 FPS:
-         *
-         * mantém o FPS original.
-         */
+// ==================================================
+// PRIMEIRA TENTATIVA
+// ==================================================
 
-        else if (info.fps >= 20) {
+await createSticker(
+    inputFile,
+    output,
+    mode,
+    targetFPS
+);
 
-            targetFPS =
-                Math.round(info.fps);
-        }
+stats =
+    fs.statSync(output);
 
+console.log(
+    `🎨 ${targetFPS} FPS → ${(stats.size / 1024).toFixed(1)} KB`
+);
+
+
+// ==================================================
+// SE PASSOU DE 1 MB → 30 FPS
+// ==================================================
+
+if (
+    stats.size > maxSize &&
+    targetFPS > 30
+) {
+
+    console.log(
+        "⚠️ Passou de 1 MB. Tentando 30 FPS..."
+    );
+
+    targetFPS = 30;
+
+    await createSticker(
+        inputFile,
+        output,
+        mode,
+        targetFPS
+    );
+
+    stats =
+        fs.statSync(output);
+
+    console.log(
+        `🎨 30 FPS → ${(stats.size / 1024).toFixed(1)} KB`
+    );
+}
+
+
+// ==================================================
+// SE AINDA PASSOU DE 1 MB → 20 FPS
+// ==================================================
+
+if (
+    stats.size > maxSize &&
+    targetFPS > 20
+) {
+
+    console.log(
+        "⚠️ Ainda passou de 1 MB. Tentando 20 FPS..."
+    );
+
+    targetFPS = 20;
+
+    await createSticker(
+        inputFile,
+        output,
+        mode,
+        targetFPS
+    );
+
+    stats =
+        fs.statSync(output);
+
+    console.log(
+        `🎨 20 FPS → ${(stats.size / 1024).toFixed(1)} KB`
+    );
+}
+
+
+// ==================================================
+// VERIFICAÇÃO FINAL
+// ==================================================
+
+if (!fs.existsSync(output)) {
+
+    throw new Error(
+        "FFmpeg não criou a figurinha."
+    );
+}
+
+stats =
+    fs.statSync(output);
+
+if (stats.size <= 0) {
+
+    throw new Error(
+        "A figurinha ficou vazia."
+    );
+}
+
+console.log(
+    `✅ Figurinha final: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS`
+);
 
         /*
          * Abaixo de 20 FPS:
