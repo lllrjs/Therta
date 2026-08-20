@@ -307,9 +307,6 @@ async function createSticker(
 
         "-an",
 
-        "-threads",
-        "0",
-
         "-vsync",
         "0",
 
