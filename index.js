@@ -175,23 +175,42 @@ let termoRanking = {};
 // ==================== STICKER ====================
 
 async function getMediaInfo(input) {
+
     const { stdout } = await execFileAsync("ffprobe", [
         "-v", "error",
         "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,r_frame_rate,avg_frame_rate",
-        "-show_entries", "format=duration",
+
+        "-show_entries",
+        "stream=width,height,r_frame_rate,avg_frame_rate",
+
+        "-show_entries",
+        "format=duration",
+
         "-of", "json",
+
         input
     ]);
 
     const data = JSON.parse(stdout);
-    const stream = data.streams[0];
+
+    const stream = data.streams?.[0];
+
+    if (!stream) {
+        throw new Error("Não foi possível identificar o vídeo/GIF.");
+    }
 
     function parseFPS(value) {
-        if (!value || value === "0/0") return 0;
 
-        const [num, den] = value.split("/").map(Number);
-        return den ? num / den : Number(value);
+        if (!value || value === "0/0") {
+            return 0;
+        }
+
+        const [num, den] =
+            value.split("/").map(Number);
+
+        return den
+            ? num / den
+            : Number(value);
     }
 
     const fps =
@@ -202,85 +221,204 @@ async function getMediaInfo(input) {
         width: Number(stream.width),
         height: Number(stream.height),
         fps,
-        duration: Number(data.format?.duration || 0)
+        duration: Number(
+            data.format?.duration || 0
+        )
     };
 }
 
 
-async function createSticker(input, output, crop = false, fps = null) {
+// ==================================================
+// CONVERSÃO PARA WEBP
+// ==================================================
+
+async function createSticker(
+    input,
+    output,
+    mode = "normal",
+    fps = null
+) {
 
     let videoFilter;
 
-    if (crop) {
-        // Corta o centro para ficar quadrado
+
+    // ==================================================
+    // .s crop
+    // Corta o centro e transforma em 512x512
+    // ==================================================
+
+    if (mode === "crop") {
+
         videoFilter =
-            "crop=min(iw\\,ih):min(iw\\,ih),scale=512:512";
-    } else {
-        // Mantém a proporção original
-        videoFilter =
-            "scale=512:512:force_original_aspect_ratio=decrease";
+            "crop=min(iw\\,ih):min(iw\\,ih)," +
+            "scale=512:512";
     }
+
+
+    // ==================================================
+    // .s2
+    // ACHATA a imagem para 512x512
+    // ==================================================
+
+    else if (mode === "stretch") {
+
+        videoFilter =
+            "scale=512:512";
+    }
+
+
+    // ==================================================
+    // .s
+    // MANTÉM A PROPORÇÃO
+    // ==================================================
+
+    else {
+
+        /*
+         * Redimensiona mantendo a proporção.
+         *
+         * Depois coloca a mídia dentro de um
+         * canvas EXATAMENTE 512x512.
+         *
+         * Isso evita:
+         *
+         * - imagem esmagada
+         * - GIF deslocado
+         * - erro do WhatsApp com dimensões inválidas
+         */
+
+        videoFilter =
+            "scale=512:512:" +
+            "force_original_aspect_ratio=decrease," +
+
+            "pad=512:512:" +
+            "(ow-iw)/2:" +
+            "(oh-ih)/2:" +
+
+            "format=yuva420p";
+    }
+
 
     const args = [
         "-y",
-        "-i", input,
 
-        "-vf", videoFilter,
+        "-i",
+        input,
 
-        "-c:v", "libwebp",
+        "-vf",
+        videoFilter,
 
-        "-loop", "0",
+        "-c:v",
+        "libwebp",
 
+        // mantém animação
+        "-loop",
+        "0",
+
+        // remove áudio
         "-an",
 
-        "-threads", "0",
+        "-threads",
+        "0",
 
-        "-compression_level", "6",
+        "-compression_level",
+        "6",
 
-        "-q:v", "70"
+        "-q:v",
+        "70"
     ];
 
-    // Só força FPS quando necessário
+
+    // ==================================================
+    // FPS
+    // ==================================================
+
     if (fps) {
-        args.push("-r", String(fps));
+
+        args.push(
+            "-r",
+            String(fps)
+        );
     }
+
 
     args.push(output);
 
-    await execFileAsync("ffmpeg", args);
+
+    await execFileAsync(
+        "ffmpeg",
+        args
+    );
 }
 
-async function makeSticker(message, crop = false) {
+
+// ==================================================
+// MAKE STICKER
+// ==================================================
+
+async function makeSticker(
+    message,
+    mode = "normal"
+) {
 
     let mediaMessage = message;
 
-    // ===== MENSAGEM RESPONDIDA =====
+
+    // ==================================================
+    // MENSAGEM RESPONDIDA
+    // ==================================================
+
     if (message.hasQuotedMsg) {
+
         try {
-            const quotedId = message._data?.quotedStanzaID;
+
+            const quotedId =
+                message._data?.quotedStanzaID;
+
 
             if (!quotedId) {
+
                 await message.reply(
                     "❌ Não consegui identificar a mídia respondida."
                 );
+
                 return;
             }
 
-            const quoted = await client.getMessageById(quotedId);
 
-            if (!quoted || !quoted.hasMedia) {
+            const quoted =
+                await client.getMessageById(
+                    quotedId
+                );
+
+
+            if (
+                !quoted ||
+                !quoted.hasMedia
+            ) {
+
                 await message.reply(
                     "❌ A mensagem respondida não contém uma mídia válida."
                 );
+
                 return;
             }
+
 
             mediaMessage = quoted;
 
         } catch (err) {
-            console.error("========== ERRO QUOTED ==========");
+
+            console.error(
+                "========== ERRO QUOTED =========="
+            );
+
             console.error(err);
-            console.error("================================");
+
+            console.error(
+                "================================"
+            );
+
 
             await message.reply(
                 "❌ Não consegui acessar a mídia respondida."
@@ -290,146 +428,416 @@ async function makeSticker(message, crop = false) {
         }
     }
 
-    // ===== VERIFICA MÍDIA =====
+
+    // ==================================================
+    // VERIFICA MÍDIA
+    // ==================================================
+
     if (!mediaMessage.hasMedia) {
+
         await message.reply(
             "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
         );
+
         return;
     }
 
-    // ===== CORREÇÃO DO ID =====
+
+    // ==================================================
+    // CORREÇÃO DO ID
+    // ==================================================
+
     try {
+
         if (
             mediaMessage.id &&
             !mediaMessage.id._serialized &&
             mediaMessage.id.$1
         ) {
+
             mediaMessage.id._serialized =
                 mediaMessage.id.$1;
         }
+
     } catch (err) {
-        console.error("Erro ao corrigir ID:", err);
-    }
 
-    // ===== DOWNLOAD =====
-    let media;
-
-    try {
-        media = await mediaMessage.downloadMedia();
-    } catch (err) {
-        console.error("========== ERRO DOWNLOAD ==========");
-        console.error(err);
-        console.error("===================================");
-
-        await message.reply(
-            "❌ Não consegui baixar essa mídia."
+        console.error(
+            "Erro ao corrigir ID:",
+            err
         );
-
-        return;
     }
+
+
+    // ==================================================
+    // DOWNLOAD
+    // ==================================================
+
+    let media = null;
+
+
+    /*
+     * Algumas mídias do WhatsApp podem falhar
+     * no primeiro download.
+     *
+     * Faz até 3 tentativas.
+     */
+
+    for (
+        let tentativa = 1;
+        tentativa <= 3;
+        tentativa++
+    ) {
+
+        try {
+
+            media =
+                await mediaMessage.downloadMedia();
+
+
+            if (media) {
+                break;
+            }
+
+        } catch (err) {
+
+            console.error(
+                `Erro no download (tentativa ${tentativa}/3):`,
+                err
+            );
+
+
+            if (tentativa < 3) {
+
+                await new Promise(
+                    resolve =>
+                        setTimeout(
+                            resolve,
+                            1000
+                        )
+                );
+            }
+        }
+    }
+
 
     if (!media) {
+
         await message.reply(
             "❌ Não consegui baixar essa mídia."
         );
+
         return;
     }
 
-    const tempDir = os.tmpdir();
 
-    const baseName = `therta_${Date.now()}`;
+    // ==================================================
+    // ARQUIVOS TEMPORÁRIOS
+    // ==================================================
 
-    const input = path.join(
-        tempDir,
-        baseName
-    );
+    const tempDir =
+        os.tmpdir();
 
-    const output = path.join(
-        tempDir,
-        `${baseName}.webp`
-    );
+
+    const baseName =
+        `therta_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2)}`;
+
+
+    const input =
+        path.join(
+            tempDir,
+            baseName
+        );
+
+
+    const output =
+        path.join(
+            tempDir,
+            `${baseName}.webp`
+        );
+
 
     let inputFile = null;
 
+
     try {
 
-        // ===== EXTENSÃO =====
+        // ==================================================
+        // EXTENSÃO
+        // ==================================================
 
-        const extension =
-            media.mimetype === "image/gif"
-                ? ".gif"
-                : media.mimetype.startsWith("video/")
-                    ? ".mp4"
-                    : media.mimetype.startsWith("image/")
-                        ? ".png"
-                        : null;
+        let extension;
 
-        if (!extension) {
+
+        if (
+            media.mimetype ===
+            "image/gif"
+        ) {
+
+            extension = ".gif";
+
+        }
+
+        else if (
+            media.mimetype.startsWith(
+                "video/"
+            )
+        ) {
+
+            extension = ".mp4";
+
+        }
+
+        else if (
+            media.mimetype.startsWith(
+                "image/"
+            )
+        ) {
+
+            extension = ".png";
+
+        }
+
+        else {
+
             await message.reply(
                 "❌ Esse tipo de mídia não é suportado."
             );
+
             return;
         }
 
-        inputFile = input + extension;
 
-        // ===== SALVA MÍDIA =====
+        inputFile =
+            input + extension;
+
+
+        // ==================================================
+        // SALVA MÍDIA
+        // ==================================================
 
         fs.writeFileSync(
             inputFile,
-            Buffer.from(media.data, "base64")
+            Buffer.from(
+                media.data,
+                "base64"
+            )
         );
 
-        // ===== FPS =====
 
-        const info = await getMediaInfo(inputFile);
+        // ==================================================
+        // INFORMAÇÕES
+        // ==================================================
 
-        let targetFPS = null;
+        const info =
+            await getMediaInfo(
+                inputFile
+            );
+
+
+        console.log(
+            `🎞️ Mídia: ${info.width}x${info.height} | FPS: ${info.fps}`
+        );
+
+
+        // ==================================================
+        // DEFINIÇÃO DO FPS
+        // ==================================================
+
+        let targetFPS;
+
+
+        /*
+         * 60 FPS ou mais:
+         *
+         * começa em 45 FPS.
+         *
+         * Se ficar grande:
+         * 30 FPS.
+         *
+         * Se ainda ficar grande:
+         * 20 FPS.
+         */
 
         if (info.fps >= 60) {
+
             targetFPS = 45;
         }
 
-        // ===== PRIMEIRA CONVERSÃO =====
+
+        /*
+         * Entre 20 e 59 FPS:
+         *
+         * mantém o FPS original.
+         */
+
+        else if (info.fps >= 20) {
+
+            targetFPS =
+                Math.round(info.fps);
+        }
+
+
+        /*
+         * Abaixo de 20 FPS:
+         *
+         * sobe para 20 FPS.
+         */
+
+        else {
+
+            targetFPS = 20;
+        }
+
+
+        // Nunca deixa abaixo de 20
+        targetFPS =
+            Math.max(
+                20,
+                targetFPS
+            );
+
+
+        // ==================================================
+        // PRIMEIRA CONVERSÃO
+        // ==================================================
 
         await createSticker(
             inputFile,
             output,
-            crop,
+            mode,
             targetFPS
         );
 
-        // ===== TAMANHO =====
 
-        const maxSize = 1024 * 1024;
+        // ==================================================
+        // VERIFICA TAMANHO
+        // ==================================================
 
-        let stats = fs.statSync(output);
+        const maxSize =
+            1024 * 1024;
 
-        // 60+ FPS e passou de 1 MB
-        // → tenta 30 FPS
+
+        let stats =
+            fs.statSync(
+                output
+            );
+
+
+        console.log(
+            `🎨 Figurinha: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS`
+        );
+
+
+        // ==================================================
+        // 60+ FPS → 30 FPS
+        // ==================================================
 
         if (
             info.fps >= 60 &&
             stats.size > maxSize
         ) {
+
+            console.log(
+                "⚠️ Figurinha passou de 1 MB. Tentando 30 FPS..."
+            );
+
+
+            targetFPS = 30;
+
+
             await createSticker(
                 inputFile,
                 output,
-                crop,
-                30
+                mode,
+                targetFPS
             );
 
-            stats = fs.statSync(output);
+
+            stats =
+                fs.statSync(
+                    output
+                );
         }
 
-        // ===== ENVIA FIGURINHA =====
 
-        const sticker = new MessageMedia(
-            "image/webp",
-            fs.readFileSync(output)
-                .toString("base64")
+        // ==================================================
+        // 60+ FPS → 20 FPS
+        // ==================================================
+
+        if (
+            info.fps >= 60 &&
+            stats.size > maxSize
+        ) {
+
+            console.log(
+                "⚠️ Ainda passou de 1 MB. Tentando 20 FPS..."
+            );
+
+
+            targetFPS = 20;
+
+
+            await createSticker(
+                inputFile,
+                output,
+                mode,
+                targetFPS
+            );
+
+
+            stats =
+                fs.statSync(
+                    output
+                );
+        }
+
+
+        // ==================================================
+        // VERIFICA FINAL
+        // ==================================================
+
+        if (
+            !fs.existsSync(output)
+        ) {
+
+            throw new Error(
+                "FFmpeg não criou a figurinha."
+            );
+        }
+
+
+        if (
+            stats.size <= 0
+        ) {
+
+            throw new Error(
+                "A figurinha ficou vazia."
+            );
+        }
+
+
+        console.log(
+            `✅ Figurinha pronta: ${(stats.size / 1024).toFixed(1)} KB`
         );
+
+
+        // ==================================================
+        // ENVIA
+        // ==================================================
+
+        const sticker =
+            new MessageMedia(
+                "image/webp",
+                fs.readFileSync(
+                    output
+                ).toString(
+                    "base64"
+                ),
+                "sticker.webp"
+            );
+
 
         await client.sendMessage(
             message.from,
@@ -439,6 +847,12 @@ async function makeSticker(message, crop = false) {
             }
         );
 
+
+        console.log(
+            "✅ Figurinha enviada!"
+        );
+
+
     } catch (err) {
 
         console.error(
@@ -446,20 +860,38 @@ async function makeSticker(message, crop = false) {
             err
         );
 
-        await message.reply(
-            "❌ Não consegui transformar essa mídia em figurinha."
-        );
+
+        try {
+
+            await message.reply(
+                "❌ Não consegui transformar essa mídia em figurinha."
+            );
+
+        } catch {}
+
 
     } finally {
 
+        // ==================================================
+        // LIMPEZA
+        // ==================================================
+
         if (inputFile) {
+
             try {
-                fs.unlinkSync(inputFile);
+                fs.unlinkSync(
+                    inputFile
+                );
             } catch {}
         }
 
+
         try {
-            fs.unlinkSync(output);
+
+            fs.unlinkSync(
+                output
+            );
+
         } catch {}
     }
 }
@@ -612,13 +1044,19 @@ client.on('message', async message => {
     const comando = message.body.toLowerCase().trim();
 
 // ===== STICKER =====
+
 if (comando === ".s") {
-    await makeSticker(message, false);
+    await makeSticker(message, "normal");
     return;
 }
 
 if (comando === ".s crop") {
-    await makeSticker(message, true);
+    await makeSticker(message, "crop");
+    return;
+}
+
+if (comando === ".s2") {
+    await makeSticker(message, "stretch");
     return;
 }
   
