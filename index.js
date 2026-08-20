@@ -966,9 +966,6 @@ client.on('ready', async () => {
 
     await diagnosticarStatusGrupo();
 });
-    console.log('🔥 bot on');
-    botId = client.info.wid._serialized;
-});
 
 // ===== REAÇÃO → /play =====
 client.on('message_reaction', async (reaction) => {
