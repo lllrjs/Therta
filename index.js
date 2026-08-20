@@ -208,12 +208,11 @@ async function getMediaInfo(input) {
 
 
 async function createSticker(input, output, crop = false, fps = null) {
-    const info = await getMediaInfo(input);
 
     let videoFilter;
 
     if (crop) {
-        // Corta o centro para ficar 1:1
+        // Corta o centro para ficar quadrado
         videoFilter =
             "crop=min(iw\\,ih):min(iw\\,ih),scale=512:512";
     } else {
@@ -241,8 +240,7 @@ async function createSticker(input, output, crop = false, fps = null) {
         "-q:v", "70"
     ];
 
-    // Só força FPS quando foi solicitado.
-    // Abaixo de 60 FPS, o FPS original é mantido.
+    // Só força FPS quando necessário
     if (fps) {
         args.push("-r", String(fps));
     }
@@ -250,17 +248,16 @@ async function createSticker(input, output, crop = false, fps = null) {
     args.push(output);
 
     await execFileAsync("ffmpeg", args);
-
-    return info;
 }
 
 
 async function makeSticker(message, crop = false) {
+
     let mediaMessage = message;
 
-    // Se o comando foi enviado respondendo a uma mídia,
-    // usa a mensagem respondida.
+    // Se respondeu a uma mídia, usa a mídia respondida
     if (message.hasQuotedMsg) {
+
         const quoted = await message.getQuotedMessage();
 
         if (quoted.hasMedia) {
@@ -269,34 +266,44 @@ async function makeSticker(message, crop = false) {
     }
 
     if (!mediaMessage.hasMedia) {
+
         await message.reply(
             "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
         );
+
         return;
     }
 
     const media = await mediaMessage.downloadMedia();
 
     if (!media) {
+
         await message.reply(
             "❌ Não consegui baixar a mídia."
         );
+
         return;
     }
 
     const tempDir = os.tmpdir();
 
+    const baseName = `therta_${Date.now()}`;
+
     const input = path.join(
         tempDir,
-        `therta_input_${Date.now()}`
+        baseName
     );
 
     const output = path.join(
         tempDir,
-        `therta_sticker_${Date.now()}.webp`
+        `${baseName}.webp`
     );
 
+    let inputFile = null;
+
     try {
+
+        // Descobre a extensão
         const extension =
             media.mimetype === "image/gif"
                 ? ".gif"
@@ -307,37 +314,33 @@ async function makeSticker(message, crop = false) {
                         : null;
 
         if (!extension) {
+
             await message.reply(
                 "❌ Esse tipo de mídia não é suportado."
             );
+
             return;
         }
 
-        const inputFile = input + extension;
+        inputFile = input + extension;
 
-        // Salva a mídia recebida
+        // Salva a mídia
         fs.writeFileSync(
             inputFile,
             Buffer.from(media.data, "base64")
         );
 
+        // Descobre FPS
         const info = await getMediaInfo(inputFile);
-
-        // ==================================================
-        // DEFINIÇÃO DO FPS
-        // ==================================================
 
         let targetFPS = null;
 
+        // 60 FPS ou mais → começa em 45 FPS
         if (info.fps >= 60) {
-            // Primeiro tenta 45 FPS
             targetFPS = 45;
         }
 
-        // ==================================================
-        // PRIMEIRA CONVERSÃO
-        // ==================================================
-
+        // Primeira conversão
         await createSticker(
             inputFile,
             output,
@@ -345,16 +348,67 @@ async function makeSticker(message, crop = false) {
             targetFPS
         );
 
-        // ==================================================
-        // VERIFICA TAMANHO
-        // ==================================================
-
+        // Verifica tamanho
         const maxSize = 1024 * 1024; // 1 MB
 
         let stats = fs.statSync(output);
 
-        // Se era 60+ FPS e ficou grande demais,
-        // recria
+        // Se era 60+ FPS e passou de 1 MB,
+        // tenta novamente em 30 FPS
+        if (info.fps >= 60 && stats.size > maxSize) {
+
+            await createSticker(
+                inputFile,
+                output,
+                crop,
+                30
+            );
+
+            stats = fs.statSync(output);
+        }
+
+        // Lê a figurinha FINAL
+        const sticker = new MessageMedia(
+            "image/webp",
+            fs.readFileSync(output).toString("base64")
+        );
+
+        // Envia somente agora,
+        // depois de todas as conversões
+        await client.sendMessage(
+            message.from,
+            sticker,
+            {
+                sendMediaAsSticker: true
+            }
+        );
+
+    } catch (err) {
+
+        console.error(
+            "Erro ao criar figurinha:",
+            err
+        );
+
+        await message.reply(
+            "❌ Não consegui transformar essa mídia em figurinha."
+        );
+
+    } finally {
+
+        // Remove arquivo de entrada
+        if (inputFile) {
+            try {
+                fs.unlinkSync(inputFile);
+            } catch {}
+        }
+
+        // Remove saída
+        try {
+            fs.unlinkSync(output);
+        } catch {}
+    }
+}
 
 // ===== FM REAÇÃO MAP =====
 let lastMusicMessage = {};
