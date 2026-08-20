@@ -271,13 +271,9 @@ async function createSticker(
 
     else {
 
-        videoFilter =
-            "scale=512:512:" +
-            "force_original_aspect_ratio=decrease," +
-            "pad=512:512:" +
-            "(ow-iw)/2:" +
-            "(oh-ih)/2:" +
-            "color=black";
+    videoFilter =
+        "scale=512:512:" +
+        "force_original_aspect_ratio=decrease";
     }
 
     const args = [
