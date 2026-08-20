@@ -257,43 +257,26 @@ async function makeSticker(message, crop = false) {
 
     // Se respondeu a uma mídia, usa a mídia respondida
     if (message.hasQuotedMsg) {
-
+    try {
         const quoted = await message.getQuotedMessage();
 
-        if (quoted.hasMedia) {
+        if (quoted && quoted.hasMedia) {
             mediaMessage = quoted;
+        } else {
+            await message.reply("❌ A mensagem respondida não tem mídia.");
+            return;
         }
-    }
 
-    if (!mediaMessage.hasMedia) {
+    } catch (err) {
+        console.error("❌ Erro ao acessar mensagem respondida:");
+        console.error(err);
 
         await message.reply(
-            "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
+            "❌ Não consegui acessar a mídia respondida."
         );
 
         return;
     }
-
-    let media;
-
-try {
-    media = await mediaMessage.downloadMedia();
-} catch (err) {
-    console.error("Erro ao baixar mídia:", err);
-
-    await message.reply(
-        "❌ Não consegui baixar essa mídia."
-    );
-
-    return;
-}
-
-if (!media) {
-    await message.reply(
-        "❌ Não consegui baixar essa mídia."
-    );
-
-    return;
 }
 
     const tempDir = os.tmpdir();
