@@ -357,17 +357,200 @@ async function makeSticker(message, crop = false) {
 
             return;
         }
+async function makeSticker(message, crop = false) {
 
-        inputFile = input + extension;
+    let mediaMessage = message;
 
-        // Salva a mídia
-        fs.writeFileSync(
-            inputFile,
-            Buffer.from(media.data, "base64")
+    // ==================================================
+    // MENSAGEM RESPONDIDA
+    // ==================================================
+
+    if (message.hasQuotedMsg) {
+
+        try {
+
+            const quotedId =
+                message._data?.quotedStanzaID;
+
+            if (!quotedId) {
+                await message.reply(
+                    "❌ Não consegui identificar a mídia respondida."
+                );
+                return;
+            }
+
+            const quoted =
+                await client.getMessageById(quotedId);
+
+            if (!quoted || !quoted.hasMedia) {
+                await message.reply(
+                    "❌ A mensagem respondida não contém uma mídia válida."
+                );
+                return;
+            }
+
+            mediaMessage = quoted;
+
+        } catch (err) {
+
+            console.error(
+                "========== ERRO QUOTED =========="
+            );
+            console.error(err);
+            console.error(
+                "================================"
+            );
+
+            await message.reply(
+                "❌ Não consegui acessar a mídia respondida."
+            );
+
+            return;
+        }
+    }
+
+    // ==================================================
+    // VERIFICA MÍDIA
+    // ==================================================
+
+    if (!mediaMessage.hasMedia) {
+
+        await message.reply(
+            "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
         );
 
-        // Descobre FPS
-        const info = await getMediaInfo(inputFile);
+        return;
+    }
+
+    // ==================================================
+    // CORREÇÃO DO ID DO WHATSAPP WEB
+    // ==================================================
+
+    try {
+
+        if (
+            mediaMessage.id &&
+            !mediaMessage.id._serialized &&
+            mediaMessage.id.$1
+        ) {
+
+            mediaMessage.id._serialized =
+                mediaMessage.id.$1;
+
+        }
+
+    } catch (err) {
+
+        console.error(
+            "Erro ao corrigir ID da mídia:",
+            err
+        );
+    }
+
+    // ==================================================
+    // DOWNLOAD
+    // ==================================================
+
+    let media;
+
+    try {
+
+        media =
+            await mediaMessage.downloadMedia();
+
+    } catch (err) {
+
+        console.error(
+            "========== ERRO DOWNLOAD =========="
+        );
+
+        console.error(err);
+
+        console.error(
+            "==================================="
+        );
+
+        await message.reply(
+            "❌ Não consegui baixar essa mídia."
+        );
+
+        return;
+    }
+
+    if (!media) {
+
+        await message.reply(
+            "❌ Não consegui baixar essa mídia."
+        );
+
+        return;
+    }
+
+    // ==================================================
+    // ARQUIVOS TEMPORÁRIOS
+    // ==================================================
+
+    const tempDir = os.tmpdir();
+
+    const baseName =
+        `therta_${Date.now()}`;
+
+    const input =
+        path.join(tempDir, baseName);
+
+    const output =
+        path.join(
+            tempDir,
+            `${baseName}.webp`
+        );
+
+    let inputFile = null;
+
+    try {
+
+        // ==================================================
+        // EXTENSÃO
+        // ==================================================
+
+        const extension =
+            media.mimetype === "image/gif"
+                ? ".gif"
+                : media.mimetype.startsWith("video/")
+                    ? ".mp4"
+                    : media.mimetype.startsWith("image/")
+                        ? ".png"
+                        : null;
+
+        if (!extension) {
+
+            await message.reply(
+                "❌ Esse tipo de mídia não é suportado."
+            );
+
+            return;
+        }
+
+        inputFile =
+            input + extension;
+
+        // ==================================================
+        // SALVA MÍDIA
+        // ==================================================
+
+        fs.writeFileSync(
+            inputFile,
+            Buffer.from(
+                media.data,
+                "base64"
+            )
+        );
+
+        // ==================================================
+        // INFORMAÇÕES DO VÍDEO/GIF
+        // ==================================================
+
+        const info =
+            await getMediaInfo(inputFile);
 
         let targetFPS = null;
 
@@ -376,7 +559,10 @@ async function makeSticker(message, crop = false) {
             targetFPS = 45;
         }
 
-        // Primeira conversão
+        // ==================================================
+        // PRIMEIRA CONVERSÃO
+        // ==================================================
+
         await createSticker(
             inputFile,
             output,
@@ -384,14 +570,23 @@ async function makeSticker(message, crop = false) {
             targetFPS
         );
 
-        // Verifica tamanho
-        const maxSize = 1024 * 1024; // 1 MB
+        // ==================================================
+        // VERIFICA TAMANHO
+        // ==================================================
 
-        let stats = fs.statSync(output);
+        const maxSize =
+            1024 * 1024;
 
-        // Se era 60+ FPS e passou de 1 MB,
-        // tenta novamente em 30 FPS
-        if (info.fps >= 60 && stats.size > maxSize) {
+        let stats =
+            fs.statSync(output);
+
+        // Se 60+ FPS e passou de 1 MB,
+        // recria em 30 FPS.
+
+        if (
+            info.fps >= 60 &&
+            stats.size > maxSize
+        ) {
 
             await createSticker(
                 inputFile,
@@ -400,17 +595,21 @@ async function makeSticker(message, crop = false) {
                 30
             );
 
-            stats = fs.statSync(output);
+            stats =
+                fs.statSync(output);
         }
 
-        // Lê a figurinha FINAL
-        const sticker = new MessageMedia(
-            "image/webp",
-            fs.readFileSync(output).toString("base64")
-        );
+        // ==================================================
+        // ENVIA A FIGURINHA
+        // ==================================================
 
-        // Envia somente agora,
-        // depois de todas as conversões
+        const sticker =
+            new MessageMedia(
+                "image/webp",
+                fs.readFileSync(output)
+                    .toString("base64")
+            );
+
         await client.sendMessage(
             message.from,
             sticker,
@@ -432,14 +631,18 @@ async function makeSticker(message, crop = false) {
 
     } finally {
 
-        // Remove arquivo de entrada
+        // ==================================================
+        // LIMPEZA
+        // ==================================================
+
         if (inputFile) {
+
             try {
                 fs.unlinkSync(inputFile);
             } catch {}
+
         }
 
-        // Remove saída
         try {
             fs.unlinkSync(output);
         } catch {}
