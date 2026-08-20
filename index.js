@@ -253,30 +253,75 @@ async function createSticker(input, output, crop = false, fps = null) {
 
 async function makeSticker(message, crop = false) {
 
+async function makeSticker(message, crop = false) {
+
+    // BLOCO NOVO
+    // ↓
     let mediaMessage = message;
 
-    // Se respondeu a uma mídia, usa a mídia respondida
     if (message.hasQuotedMsg) {
-    try {
-        const quoted = await message.getQuotedMessage();
+        try {
+            const quotedId = message._data?.quotedStanzaID;
 
-        if (quoted && quoted.hasMedia) {
+            if (!quotedId) {
+                await message.reply(
+                    "❌ Não consegui identificar a mídia respondida."
+                );
+                return;
+            }
+
+            const quoted = await client.getMessageById(quotedId);
+
+            if (!quoted || !quoted.hasMedia) {
+                await message.reply(
+                    "❌ A mensagem respondida não contém uma mídia válida."
+                );
+                return;
+            }
+
             mediaMessage = quoted;
-        } else {
-            await message.reply("❌ A mensagem respondida não tem mídia.");
+
+        } catch (err) {
+            console.error("========== ERRO QUOTED ==========");
+            console.error(err);
+            console.error("================================");
+
+            await message.reply(
+                "❌ Não consegui acessar a mídia respondida."
+            );
+
             return;
         }
+    }
 
+    if (!mediaMessage.hasMedia) {
+        await message.reply(
+            "❌ Envie uma foto, GIF ou vídeo junto com o comando, ou responda a uma mídia com .s"
+        );
+        return;
+    }
+
+    let media;
+
+    try {
+        media = await mediaMessage.downloadMedia();
     } catch (err) {
-    console.error("========== ERRO QUOTED ==========");
-    console.error(err);
-    console.error("================================");
+        console.error("========== ERRO DOWNLOAD ==========");
+        console.error(err);
+        console.error("===================================");
 
-    await message.reply(
-        "❌ Não consegui acessar a mídia respondida."
-    );
+        await message.reply(
+            "❌ Não consegui baixar essa mídia."
+        );
 
-    return;
+        return;
+    }
+
+    if (!media) {
+        await message.reply(
+            "❌ Não consegui baixar essa mídia."
+        );
+        return;
     }
 }
 
