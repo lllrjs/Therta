@@ -4,7 +4,7 @@ const qrcode = require('qrcode-terminal');
 const OpenAI = require('openai');
 const fs = require('fs');
 const axios = require('axios');
-const sharp = require('sharp');
+const sharp = require('sharp').default;
 const path = require('path');
 
 
