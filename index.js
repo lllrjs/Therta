@@ -153,57 +153,49 @@ const client = new Client({
    }
 });
 
-// ==================================================
-// DIAGNÓSTICO — MÓDULOS DE STATUS DO WHATSAPP WEB
-// ==================================================
-
 async function diagnosticarStatusGrupo() {
 
     try {
 
-        console.log("🔎 Procurando módulos de Status...");
+        console.log("🔎 Inspecionando WhatsApp Web...");
 
         const resultado = await client.pupPage.evaluate(() => {
 
-            const nomes = [
-                "Status",
-                "StatusV3",
-                "StatusManager",
-                "StatusStore",
-                "Story",
-                "Stories",
-                "GroupStatus",
-                "GroupStatusManager",
-                "StatusPrivacy"
-            ];
+            const dados = {
+                webpack: typeof webpackChunkwhatsapp_web_client !== "undefined",
+                require: typeof window.require,
+                webpackKeys: [],
+                globals: []
+            };
 
-            const encontrados = [];
+            // Procura objetos globais relacionados a status/story
+            for (const chave of Object.keys(window)) {
 
-            for (const nome of nomes) {
+                const nome = chave.toLowerCase();
 
-                try {
-
-                    const modulo =
-                        window.require?.(nome);
-
-                    if (modulo) {
-
-                        encontrados.push({
-                            nome,
-                            chaves: Object.keys(modulo)
-                        });
-
-                    }
-
-                } catch {}
+                if (
+                    nome.includes("status") ||
+                    nome.includes("story") ||
+                    nome.includes("stories") ||
+                    nome.includes("group")
+                ) {
+                    dados.globals.push(chave);
+                }
             }
 
-            return encontrados;
+            return dados;
         });
 
         console.log(
-            "📱 Módulos encontrados:",
-            JSON.stringify(resultado, null, 2)
+            "📱 RESULTADO DO DIAGNÓSTICO:"
+        );
+
+        console.log(
+            JSON.stringify(
+                resultado,
+                null,
+                2
+            )
         );
 
     } catch (err) {
