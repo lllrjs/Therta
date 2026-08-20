@@ -227,7 +227,6 @@ async function getMediaInfo(input) {
     };
 }
 
-
 // ==================================================
 // CONVERSÃO PARA WEBP
 // ==================================================
@@ -242,39 +241,55 @@ async function createSticker(
 
     let videoFilter;
 
-    // ==============================
+    // ==================================================
     // .s crop
-    // ==============================
+    // Corta o centro e transforma em 512x512
+    // ==================================================
 
     if (mode === "crop") {
 
         videoFilter =
             "crop=min(iw\\,ih):min(iw\\,ih)," +
             "scale=512:512";
-
     }
 
-    // ==============================
+    // ==================================================
     // .s2
-    // ==============================
+    // ACHATA para 512x512
+    // ==================================================
 
     else if (mode === "stretch") {
 
         videoFilter =
             "scale=512:512";
-
     }
 
-    // ==============================
+    // ==================================================
     // .s
-    // ==============================
+    // MANTÉM A PROPORÇÃO
+    // ==================================================
 
     else {
 
+        /*
+         * Apenas reduz a mídia para caber dentro
+         * de 512x512.
+         *
+         * NÃO usa pad.
+         *
+         * Exemplos:
+         *
+         * 1080x1920 → 288x512
+         * 1920x1080 → 512x288
+         * 484x498   → 484x498
+         *
+         * Assim a imagem não é esmagada
+         * e não fica com uma tela 512x512.
+         */
+
         videoFilter =
             "scale=512:512:" +
-            "force_original_aspect_ratio=decrease," +
-            "pad=512:512:(ow-iw)/2:(oh-ih)/2";
+            "force_original_aspect_ratio=decrease";
     }
 
     const args = [
@@ -286,8 +301,16 @@ async function createSticker(
         "-vf",
         videoFilter,
 
+        // ==============================================
+        // FPS
+        // ==============================================
+
         "-r",
         String(Math.max(20, fps)),
+
+        // ==============================================
+        // WEBP
+        // ==============================================
 
         "-c:v",
         "libwebp",
@@ -301,9 +324,11 @@ async function createSticker(
         "-q:v",
         String(quality),
 
+        // animação em loop
         "-loop",
         "0",
 
+        // remove áudio
         "-an",
 
         "-threads",
