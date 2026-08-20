@@ -917,7 +917,7 @@ try {
     }
 }
     
-    // =========================
+// =========================
 // FM ATUAL + CAPA DO ÁLBUM
 // =========================
 if (comando === "!fm") {
@@ -961,44 +961,51 @@ Reaja a essa mensagem para baixar a música`;
 
         // se tiver imagem, envia com foto
         if (capa) {
-    try {
+            try {
 
-        const media = await MessageMedia.fromUrl(capa);
+                const media = await MessageMedia.fromUrl(capa);
 
-        const sent = await client.sendMessage(message.from, media, {
-            caption: texto
-        });
+                const sent = await client.sendMessage(message.from, media, {
+                    caption: texto
+                });
 
-        lastMusicMessage[sent.id._serialized] =
-            `${artista} - ${musica}`;
+                if (sent?.id?._serialized) {
+                    lastMusicMessage[sent.id._serialized] =
+                        `${artista} - ${musica}`;
+                }
 
-        return;
+                return;
 
-    } catch {
+            } catch (err) {
 
-        const sent = await message.reply(texto);
+                console.log("Erro ao enviar capa do FM:", err);
 
-        lastMusicMessage[sent.id._serialized] =
-            `${artista} - ${musica}`;
+                const sent = await message.reply(texto);
 
-        return;
-    }
+                if (sent?.id?._serialized) {
+                    lastMusicMessage[sent.id._serialized] =
+                        `${artista} - ${musica}`;
+                }
+
+                return;
+            }
         }
 
         // fallback sem imagem
         const sent = await message.reply(texto);
 
-lastMusicMessage[sent.id._serialized] =
-    `${artista} - ${musica}`;
+        if (sent?.id?._serialized) {
+            lastMusicMessage[sent.id._serialized] =
+                `${artista} - ${musica}`;
+        }
 
-return;
+        return;
 
     } catch (err) {
         console.log(err);
         return message.reply("erro fm 😶");
     }
 }
-
 
 // =========================
 // PALAVRA ALEATÓRIA
