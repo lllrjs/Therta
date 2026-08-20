@@ -274,16 +274,27 @@ async function makeSticker(message, crop = false) {
         return;
     }
 
-    const media = await mediaMessage.downloadMedia();
+    let media;
 
-    if (!media) {
+try {
+    media = await mediaMessage.downloadMedia();
+} catch (err) {
+    console.error("Erro ao baixar mídia:", err);
 
-        await message.reply(
-            "❌ Não consegui baixar a mídia."
-        );
+    await message.reply(
+        "❌ Não consegui baixar essa mídia."
+    );
 
-        return;
-    }
+    return;
+}
+
+if (!media) {
+    await message.reply(
+        "❌ Não consegui baixar essa mídia."
+    );
+
+    return;
+}
 
     const tempDir = os.tmpdir();
 
