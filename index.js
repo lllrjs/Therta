@@ -363,71 +363,48 @@ async function makeSticker(
 
     let mediaMessage = message;
 
+// ==================================================
+// MENSAGEM RESPONDIDA
+// ==================================================
 
-    // ==================================================
-    // MENSAGEM RESPONDIDA
-    // ==================================================
+if (message.hasQuotedMsg) {
 
-    if (message.hasQuotedMsg) {
+    try {
 
-        try {
+        const quoted =
+            await message.getQuotedMessage();
 
-            const quotedId =
-                message._data?.quotedStanzaID;
-
-
-            if (!quotedId) {
-
-                await message.reply(
-                    "❌ Não consegui identificar a mídia respondida."
-                );
-
-                return;
-            }
-
-
-            const quoted =
-                await client.getMessageById(
-                    quotedId
-                );
-
-
-            if (
-                !quoted ||
-                !quoted.hasMedia
-            ) {
-
-                await message.reply(
-                    "❌ A mensagem respondida não contém uma mídia válida."
-                );
-
-                return;
-            }
-
-
-            mediaMessage = quoted;
-
-        } catch (err) {
-
-            console.error(
-                "========== ERRO QUOTED =========="
-            );
-
-            console.error(err);
-
-            console.error(
-                "================================"
-            );
-
-
+        if (
+            !quoted ||
+            !quoted.hasMedia
+        ) {
             await message.reply(
-                "❌ Não consegui acessar a mídia respondida."
+                "❌ A mensagem respondida não contém uma mídia válida."
             );
-
             return;
         }
-    }
 
+        mediaMessage = quoted;
+
+    } catch (err) {
+
+        console.error(
+            "========== ERRO QUOTED =========="
+        );
+
+        console.error(err);
+
+        console.error(
+            "================================"
+        );
+
+        await message.reply(
+            "❌ Não consegui acessar a mídia respondida."
+        );
+
+        return;
+    }
+}
 
     // ==================================================
     // VERIFICA MÍDIA
