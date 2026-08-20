@@ -250,9 +250,6 @@ async function createSticker(input, output, crop = false, fps = null) {
     await execFileAsync("ffmpeg", args);
 }
 
-
-async function makeSticker(message, crop = false) {
-
 async function makeSticker(message, crop = false) {
 
     // BLOCO NOVO
