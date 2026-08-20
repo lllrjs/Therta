@@ -557,7 +557,16 @@ client.on('message', async message => {
 
     const comando = message.body.toLowerCase().trim();
 
+// ===== STICKER =====
+if (comando === ".s") {
+    await makeSticker(message, false);
+    return;
+}
 
+if (comando === ".s crop") {
+    await makeSticker(message, true);
+    return;
+}
   
     // =========================
     // FM HELP
