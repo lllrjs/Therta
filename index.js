@@ -236,15 +236,14 @@ async function createSticker(
     input,
     output,
     mode = "normal",
-    fps = null
+    fps = 20
 ) {
 
     let videoFilter;
 
-
     // ==================================================
     // .s crop
-    // Corta o centro e transforma em 512x512
+    // Corta o centro e deixa 512x512
     // ==================================================
 
     if (mode === "crop") {
@@ -254,10 +253,9 @@ async function createSticker(
             "scale=512:512";
     }
 
-
     // ==================================================
     // .s2
-    // ACHATA a imagem para 512x512
+    // ACHATA para 512x512
     // ==================================================
 
     else if (mode === "stretch") {
@@ -266,7 +264,6 @@ async function createSticker(
             "scale=512:512";
     }
 
-
     // ==================================================
     // .s
     // MANTÉM A PROPORÇÃO
@@ -274,30 +271,14 @@ async function createSticker(
 
     else {
 
-        /*
-         * Redimensiona mantendo a proporção.
-         *
-         * Depois coloca a mídia dentro de um
-         * canvas EXATAMENTE 512x512.
-         *
-         * Isso evita:
-         *
-         * - imagem esmagada
-         * - GIF deslocado
-         * - erro do WhatsApp com dimensões inválidas
-         */
-
         videoFilter =
             "scale=512:512:" +
             "force_original_aspect_ratio=decrease," +
-
             "pad=512:512:" +
             "(ow-iw)/2:" +
             "(oh-ih)/2:" +
-
-            "format=yuva420p";
+            "color=black";
     }
-
 
     const args = [
         "-y",
@@ -308,49 +289,42 @@ async function createSticker(
         "-vf",
         videoFilter,
 
+        // FPS
+        "-r",
+        String(Math.max(20, fps)),
+
+        // WebP animado
         "-c:v",
         "libwebp",
 
-        // mantém animação
-        "-loop",
-        "0",
-
-        // remove áudio
-        "-an",
-
-        "-threads",
+        "-lossless",
         "0",
 
         "-compression_level",
         "6",
 
         "-q:v",
-        "70"
+        "70",
+
+        "-loop",
+        "0",
+
+        "-an",
+
+        "-threads",
+        "0",
+
+        "-vsync",
+        "0",
+
+        output
     ];
-
-
-    // ==================================================
-    // FPS
-    // ==================================================
-
-    if (fps) {
-
-        args.push(
-            "-r",
-            String(fps)
-        );
-    }
-
-
-    args.push(output);
-
 
     await execFileAsync(
         "ffmpeg",
         args
     );
 }
-
 
 // ==================================================
 // MAKE STICKER
