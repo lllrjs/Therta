@@ -320,7 +320,6 @@ async function makeSticker(message, crop = false) {
         );
         return;
     }
-}
 
     const tempDir = os.tmpdir();
 
