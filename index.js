@@ -136,7 +136,7 @@ await base
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-      executablePath: "/snap/bin/chromium",
+      executablePath: "/data/data/com.termux/files/usr/bin/chromium-browser",
     headless: true,
     args: [
         "--no-sandbox",
