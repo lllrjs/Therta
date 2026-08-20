@@ -236,44 +236,45 @@ async function createSticker(
     input,
     output,
     mode = "normal",
-    fps = 20
+    fps = 30,
+    quality = 70
 ) {
 
     let videoFilter;
 
-    // ==================================================
+    // ==============================
     // .s crop
-    // Corta o centro e deixa 512x512
-    // ==================================================
+    // ==============================
 
     if (mode === "crop") {
 
         videoFilter =
             "crop=min(iw\\,ih):min(iw\\,ih)," +
             "scale=512:512";
+
     }
 
-    // ==================================================
+    // ==============================
     // .s2
-    // ACHATA para 512x512
-    // ==================================================
+    // ==============================
 
     else if (mode === "stretch") {
 
         videoFilter =
             "scale=512:512";
+
     }
 
-    // ==================================================
+    // ==============================
     // .s
-    // MANTÉM A PROPORÇÃO
-    // ==================================================
+    // ==============================
 
     else {
 
-    videoFilter =
-        "scale=512:512:" +
-        "force_original_aspect_ratio=decrease";
+        videoFilter =
+            "scale=512:512:" +
+            "force_original_aspect_ratio=decrease," +
+            "pad=512:512:(ow-iw)/2:(oh-ih)/2";
     }
 
     const args = [
@@ -285,11 +286,9 @@ async function createSticker(
         "-vf",
         videoFilter,
 
-        // FPS
         "-r",
         String(Math.max(20, fps)),
 
-        // WebP animado
         "-c:v",
         "libwebp",
 
@@ -300,7 +299,7 @@ async function createSticker(
         "6",
 
         "-q:v",
-        "70",
+        String(quality),
 
         "-loop",
         "0",
@@ -308,7 +307,7 @@ async function createSticker(
         "-an",
 
         "-threads",
-"0",
+        "0",
 
         output
     ];
