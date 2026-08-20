@@ -268,14 +268,15 @@ async function makeSticker(message, crop = false) {
         }
 
     } catch (err) {
-        console.error("❌ Erro ao acessar mensagem respondida:");
-        console.error(err);
+    console.error("========== ERRO QUOTED ==========");
+    console.error(err);
+    console.error("================================");
 
-        await message.reply(
-            "❌ Não consegui acessar a mídia respondida."
-        );
+    await message.reply(
+        "❌ Não consegui acessar a mídia respondida."
+    );
 
-        return;
+    return;
     }
 }
 
