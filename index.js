@@ -762,13 +762,6 @@ if (stats.size <= 0) {
 // LIMITE ABSOLUTO
 // ==================================================
 
-if (stats.size > 1024 * 1024) {
-
-    throw new Error(
-        `Figurinha excedeu 1 MB: ${(stats.size / 1024).toFixed(1)} KB`
-    );
-}
-
 
 console.log(
     `✅ Figurinha final: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS | Q${quality}`
