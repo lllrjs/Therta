@@ -231,6 +231,7 @@ async function getMediaInfo(input) {
 // CONVERSÃO PARA WEBP
 // ==================================================
 
+    
 async function createSticker(
     input,
     output,
@@ -238,7 +239,7 @@ async function createSticker(
     fps = 30,
     quality = 70
 ) {
-
+console.log("🎨 CREATE STICKER → mode:", mode);
     let videoFilter;
 
     // ==================================================
