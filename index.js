@@ -153,6 +153,69 @@ const client = new Client({
    }
 });
 
+// ==================================================
+// DIAGNÓSTICO — MÓDULOS DE STATUS DO WHATSAPP WEB
+// ==================================================
+
+async function diagnosticarStatusGrupo() {
+
+    try {
+
+        console.log("🔎 Procurando módulos de Status...");
+
+        const resultado = await client.pupPage.evaluate(() => {
+
+            const nomes = [
+                "Status",
+                "StatusV3",
+                "StatusManager",
+                "StatusStore",
+                "Story",
+                "Stories",
+                "GroupStatus",
+                "GroupStatusManager",
+                "StatusPrivacy"
+            ];
+
+            const encontrados = [];
+
+            for (const nome of nomes) {
+
+                try {
+
+                    const modulo =
+                        window.require?.(nome);
+
+                    if (modulo) {
+
+                        encontrados.push({
+                            nome,
+                            chaves: Object.keys(modulo)
+                        });
+
+                    }
+
+                } catch {}
+            }
+
+            return encontrados;
+        });
+
+        console.log(
+            "📱 Módulos encontrados:",
+            JSON.stringify(resultado, null, 2)
+        );
+
+    } catch (err) {
+
+        console.error(
+            "❌ Erro no diagnóstico:",
+            err
+        );
+
+    }
+}
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
@@ -894,7 +957,15 @@ client.on('qr', qr => {
 });
 
 // ===== READY =====
-client.on('ready', () => {
+client.on('ready', async () => {
+
+    console.log('🔥 bot on');
+
+    botId =
+        client.info.wid._serialized;
+
+    await diagnosticarStatusGrupo();
+});
     console.log('🔥 bot on');
     botId = client.info.wid._serialized;
 });
