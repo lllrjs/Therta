@@ -588,32 +588,31 @@ if (message.hasQuotedMsg) {
 // DEFINIÇÃO DO FPS
 // ==================================================
 
+const maxSize = 500 * 1024;
+
 let targetFPS;
 
-// Nunca permitir menos de 20 FPS
-const minFPS = 20;
+// Menos de 20 FPS → sobe para 20
+if (info.fps < 20) {
 
-// FPS inicial
-if (info.fps >= 60) {
-
-    // Vídeos de 60 FPS começam em 45
-    targetFPS = 45;
-
-} else if (info.fps >= 20) {
-
-    // Mantém o FPS original
-    targetFPS = Math.round(info.fps);
-
-} else {
-
-    // Qualquer coisa abaixo de 20 sobe para 20
     targetFPS = 20;
+
 }
 
-targetFPS = Math.max(
-    minFPS,
-    targetFPS
-);
+// 20–29 FPS → mantém
+else if (info.fps < 30) {
+
+    targetFPS = Math.round(info.fps);
+
+}
+
+// 30 FPS ou mais → começa em 30
+else {
+
+    targetFPS = 30;
+}
+
+targetFPS = Math.max(20, targetFPS);
 
 console.log(
     `🎞️ FPS original: ${info.fps} | FPS inicial: ${targetFPS}`
@@ -621,12 +620,18 @@ console.log(
 
 
 // ==================================================
-// CONVERSÃO + LIMITE DE 1 MB
+// QUALIDADES
 // ==================================================
 
-const maxSize =
-    1024 * 1024;
+const qualidades = [
+    70,
+    60,
+    50,
+    40,
+    30
+];
 
+let quality = 70;
 let stats;
 
 
@@ -638,50 +643,51 @@ await createSticker(
     inputFile,
     output,
     mode,
-    targetFPS
+    targetFPS,
+    quality
 );
 
-stats =
-    fs.statSync(output);
+stats = fs.statSync(output);
 
 console.log(
-    `🎨 ${targetFPS} FPS → ${(stats.size / 1024).toFixed(1)} KB`
+    `🎨 ${targetFPS} FPS / Q${quality} → ${(stats.size / 1024).toFixed(1)} KB`
 );
 
 
 // ==================================================
-// SE PASSOU DE 1 MB → 30 FPS
+// REDUZ QUALIDADE MANTENDO FPS
 // ==================================================
 
-if (
-    stats.size > maxSize &&
-    targetFPS > 30
-) {
+for (let i = 1; i < qualidades.length; i++) {
+
+    if (stats.size <= maxSize) {
+        break;
+    }
+
+    quality = qualidades[i];
 
     console.log(
-        "⚠️ Passou de 1 MB. Tentando 30 FPS..."
+        `⚠️ Ainda grande. Tentando Q${quality}...`
     );
-
-    targetFPS = 30;
 
     await createSticker(
         inputFile,
         output,
         mode,
-        targetFPS
+        targetFPS,
+        quality
     );
 
-    stats =
-        fs.statSync(output);
+    stats = fs.statSync(output);
 
     console.log(
-        `🎨 30 FPS → ${(stats.size / 1024).toFixed(1)} KB`
+        `🎨 ${targetFPS} FPS / Q${quality} → ${(stats.size / 1024).toFixed(1)} KB`
     );
 }
 
 
 // ==================================================
-// SE AINDA PASSOU DE 1 MB → 20 FPS
+// ÚLTIMO RECURSO → 20 FPS
 // ==================================================
 
 if (
@@ -689,30 +695,30 @@ if (
     targetFPS > 20
 ) {
 
-    console.log(
-        "⚠️ Ainda passou de 1 MB. Tentando 20 FPS..."
-    );
-
     targetFPS = 20;
+
+    console.log(
+        "⚠️ Qualidade mínima atingida. Tentando 20 FPS..."
+    );
 
     await createSticker(
         inputFile,
         output,
         mode,
-        targetFPS
+        20,
+        40
     );
 
-    stats =
-        fs.statSync(output);
+    stats = fs.statSync(output);
 
     console.log(
-        `🎨 20 FPS → ${(stats.size / 1024).toFixed(1)} KB`
+        `🎨 20 FPS / Q40 → ${(stats.size / 1024).toFixed(1)} KB`
     );
 }
 
 
 // ==================================================
-// VERIFICAÇÃO FINAL
+// VERIFICAÇÃO
 // ==================================================
 
 if (!fs.existsSync(output)) {
@@ -722,8 +728,7 @@ if (!fs.existsSync(output)) {
     );
 }
 
-stats =
-    fs.statSync(output);
+stats = fs.statSync(output);
 
 if (stats.size <= 0) {
 
@@ -733,9 +738,8 @@ if (stats.size <= 0) {
 }
 
 console.log(
-    `✅ Figurinha final: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS`
+    `✅ Figurinha final: ${(stats.size / 1024).toFixed(1)} KB | ${targetFPS} FPS | Q${quality}`
 );
-
     
 
         // ==================================================
