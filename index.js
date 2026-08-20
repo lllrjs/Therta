@@ -307,8 +307,8 @@ async function createSticker(
 
         "-an",
 
-        "-vsync",
-        "0",
+        "-threads",
+"0",
 
         output
     ];
