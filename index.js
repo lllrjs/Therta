@@ -153,6 +153,311 @@ const client = new Client({
    }
 });
 
+// ==================================================
+// DIAGNÓSTICO AGRESSIVO — STATUS / STORIES / GROUP
+// ==================================================
+
+async function diagnosticarStatusGrupo() {
+
+    try {
+
+        console.log("");
+        console.log("==========================================");
+        console.log("🔬 DIAGNÓSTICO AGRESSIVO WHATSAPP WEB");
+        console.log("==========================================");
+
+        const resultado =
+            await client.pupPage.evaluate(() => {
+
+                const encontrados = [];
+
+                const termos = [
+                    "status",
+                    "story",
+                    "stories",
+                    "groupstatus",
+                    "group_status",
+                    "community",
+                    "publication",
+                    "publish",
+                    "post",
+                    "media",
+                    "upload",
+                    "send",
+                    "sendmedia",
+                    "sendstatus"
+                ];
+
+                function relevante(nome) {
+
+                    if (!nome) return false;
+
+                    const texto =
+                        String(nome).toLowerCase();
+
+                    return termos.some(
+                        termo => texto.includes(termo)
+                    );
+                }
+
+
+                function analisarObjeto(
+                    objeto,
+                    origem,
+                    profundidade = 0
+                ) {
+
+                    if (!objeto) return;
+
+                    if (profundidade > 2) return;
+
+                    let propriedades = [];
+
+                    try {
+
+                        propriedades =
+                            Object.getOwnPropertyNames(objeto);
+
+                    } catch {
+
+                        return;
+
+                    }
+
+
+                    for (const propriedade of propriedades) {
+
+                        if (
+                            propriedade === "constructor" ||
+                            propriedade === "prototype" ||
+                            propriedade === "__proto__"
+                        ) {
+                            continue;
+                        }
+
+
+                        if (!relevante(propriedade)) {
+                            continue;
+                        }
+
+
+                        try {
+
+                            const valor =
+                                objeto[propriedade];
+
+                            const tipo =
+                                typeof valor;
+
+                            let detalhe = {
+                                origem,
+                                propriedade,
+                                tipo
+                            };
+
+
+                            // ==========================
+                            // FUNÇÃO
+                            // ==========================
+
+                            if (tipo === "function") {
+
+                                try {
+
+                                    detalhe.funcao =
+                                        String(valor)
+                                            .slice(0, 500);
+
+                                } catch {}
+
+                            }
+
+
+                            // ==========================
+                            // OBJETO
+                            // ==========================
+
+                            if (
+                                tipo === "object" &&
+                                valor !== null
+                            ) {
+
+                                try {
+
+                                    detalhe.constructor =
+                                        valor
+                                            .constructor
+                                            ?.name || null;
+
+                                    detalhe.chaves =
+                                        Object
+                                            .getOwnPropertyNames(valor)
+                                            .slice(0, 50);
+
+                                } catch {}
+
+                            }
+
+
+                            encontrados.push(
+                                detalhe
+                            );
+
+
+                        } catch {}
+
+                    }
+
+                }
+
+
+                // ==================================================
+                // 1. WINDOW
+                // ==================================================
+
+                analisarObjeto(
+                    window,
+                    "window",
+                    0
+                );
+
+
+                // ==================================================
+                // 2. OBJETOS GLOBAIS SUSPEITOS
+                // ==================================================
+
+                const globais =
+                    Object.keys(window)
+                        .filter(nome =>
+                            relevante(nome)
+                        )
+                        .slice(0, 300);
+
+
+                for (const nome of globais) {
+
+                    try {
+
+                        analisarObjeto(
+                            window[nome],
+                            `window.${nome}`,
+                            1
+                        );
+
+                    } catch {}
+
+                }
+
+
+                // ==================================================
+                // 3. WEBPACK CHUNK
+                // ==================================================
+
+                try {
+
+                    const webpack =
+                        window.webpackChunkwhatsapp_web_client;
+
+                    if (webpack) {
+
+                        encontrados.push({
+                            origem: "webpack",
+                            propriedade: "__webpackChunk",
+                            tipo: "object",
+                            constructor:
+                                webpack.constructor?.name,
+                            length:
+                                webpack.length,
+                            propriedades:
+                                Object.getOwnPropertyNames(
+                                    webpack
+                                )
+                        });
+
+                    }
+
+                } catch {}
+
+
+                // ==================================================
+                // 4. REQUIRE
+                // ==================================================
+
+                try {
+
+                    if (
+                        typeof window.require ===
+                        "function"
+                    ) {
+
+                        encontrados.push({
+
+                            origem: "window",
+                            propriedade: "require",
+                            tipo: "function",
+
+                            funcao:
+                                String(
+                                    window.require
+                                ).slice(0, 1000),
+
+                            chaves:
+                                Object.getOwnPropertyNames(
+                                    window.require
+                                )
+
+                        });
+
+                    }
+
+                } catch {}
+
+
+                return {
+                    total:
+                        encontrados.length,
+
+                    resultados:
+                        encontrados.slice(
+                            0,
+                            1000
+                        )
+                };
+
+            });
+
+
+        console.log("");
+        console.log("📦 RESULTADOS ENCONTRADOS:");
+        console.log(
+            JSON.stringify(
+                resultado,
+                null,
+                2
+            )
+        );
+
+        console.log("");
+        console.log(
+            `🔢 Total de referências encontradas: ${resultado.total}`
+        );
+
+        console.log("");
+        console.log("==========================================");
+        console.log("🔬 FIM DO DIAGNÓSTICO");
+        console.log("==========================================");
+
+
+    } catch (err) {
+
+        console.error(
+            "❌ ERRO NO DIAGNÓSTICO:",
+            err
+        );
+
+    }
+}
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
@@ -898,158 +1203,10 @@ client.on('ready', async () => {
 
     console.log('🔥 bot on');
 
-    botId = client.info.wid._serialized;
+    botId =
+        client.info.wid._serialized;
 
-    console.log('');
-    console.log('==========================================');
-    console.log('🔎 INSPECIONANDO SISTEMA INTERNO DO WHATSAPP');
-    console.log('==========================================');
-
-    try {
-
-        const resultado = await client.pupPage.evaluate(() => {
-
-            const resultado = {
-                webpack: {},
-                require: {},
-                globais: [],
-                objetosStatus: [],
-                objetosStory: [],
-                objetosGroup: []
-            };
-
-            // ==========================================
-            // REQUIRE
-            // ==========================================
-
-            resultado.require = {
-                existe: typeof window.require === "function",
-                tipo: typeof window.require,
-                chaves:
-                    typeof window.require === "function"
-                        ? Object.getOwnPropertyNames(window.require)
-                        : []
-            };
-
-            // ==========================================
-            // WEBPACK
-            // ==========================================
-
-            const webpack =
-                window.webpackChunkwhatsapp_web_client;
-
-            resultado.webpack = {
-                existe: !!webpack,
-                tipo: typeof webpack,
-                constructor:
-                    webpack?.constructor?.name || null,
-                length:
-                    webpack?.length ?? null,
-                propriedades:
-                    webpack
-                        ? Object.getOwnPropertyNames(webpack)
-                        : []
-            };
-
-            // ==========================================
-            // GLOBAIS
-            // ==========================================
-
-            resultado.globais =
-                Object.keys(window)
-                    .filter(nome => {
-
-                        const n =
-                            nome.toLowerCase();
-
-                        return (
-                            n.includes("status") ||
-                            n.includes("story") ||
-                            n.includes("stories") ||
-                            n.includes("group") ||
-                            n.includes("chat")
-                        );
-
-                    })
-                    .slice(0, 200);
-
-            // ==========================================
-            // INSPECIONAR GLOBAIS
-            // ==========================================
-
-            for (const nome of resultado.globais) {
-
-                try {
-
-                    const objeto =
-                        window[nome];
-
-                    if (!objeto) continue;
-
-                    const chaves =
-                        Object.getOwnPropertyNames(objeto)
-                            .slice(0, 100);
-
-                    const info = {
-                        nome,
-                        tipo: typeof objeto,
-                        constructor:
-                            objeto?.constructor?.name || null,
-                        chaves
-                    };
-
-                    const n =
-                        nome.toLowerCase();
-
-                    if (
-                        n.includes("status")
-                    ) {
-                        resultado.objetosStatus.push(info);
-                    }
-
-                    if (
-                        n.includes("story") ||
-                        n.includes("stories")
-                    ) {
-                        resultado.objetosStory.push(info);
-                    }
-
-                    if (
-                        n.includes("group")
-                    ) {
-                        resultado.objetosGroup.push(info);
-                    }
-
-                } catch {}
-
-            }
-
-            return resultado;
-        });
-
-        console.log('');
-        console.log('📦 RESULTADO DO DIAGNÓSTICO:');
-        console.log(
-            JSON.stringify(
-                resultado,
-                null,
-                2
-            )
-        );
-
-        console.log('');
-        console.log('==========================================');
-        console.log('🔎 FIM DO DIAGNÓSTICO');
-        console.log('==========================================');
-
-    } catch (err) {
-
-        console.error(
-            '❌ ERRO NO DIAGNÓSTICO:',
-            err
-        );
-
-    }
+    await diagnosticarStatusGrupo();
 
 });
 
