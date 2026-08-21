@@ -153,82 +153,6 @@ const client = new Client({
    }
 });
 
-async function diagnosticarStatusGrupo() {
-
-    try {
-
-        console.log("🔎 Inspecionando Webpack do WhatsApp Web...");
-
-        const resultado =
-            await client.pupPage.evaluate(() => {
-
-                const resultado = {};
-
-                try {
-
-                    const chunk =
-                        window.webpackChunkwhatsapp_web_client;
-
-                    resultado.existe =
-                        !!chunk;
-
-                    resultado.tipo =
-                        typeof chunk;
-
-                    resultado.constructor =
-                        chunk?.constructor?.name;
-
-                    resultado.length =
-                        chunk?.length;
-
-                    resultado.propriedades =
-                        chunk
-                            ? Object.getOwnPropertyNames(chunk)
-                            : [];
-
-                    resultado.pushTipo =
-                        chunk
-                            ? typeof chunk.push
-                            : null;
-
-                    resultado.pushString =
-                        chunk?.push
-                            ? String(chunk.push).slice(0, 1000)
-                            : null;
-
-                } catch (err) {
-
-                    resultado.erro =
-                        String(err);
-
-                }
-
-                return resultado;
-            });
-
-
-        console.log(
-            "📦 RESULTADO WEBPACK:"
-        );
-
-        console.log(
-            JSON.stringify(
-                resultado,
-                null,
-                2
-            )
-        );
-
-    } catch (err) {
-
-        console.error(
-            "❌ Erro no diagnóstico:",
-            err
-        );
-
-    }
-}
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
@@ -974,10 +898,159 @@ client.on('ready', async () => {
 
     console.log('🔥 bot on');
 
-    botId =
-        client.info.wid._serialized;
+    botId = client.info.wid._serialized;
 
-    await diagnosticarStatusGrupo();
+    console.log('');
+    console.log('==========================================');
+    console.log('🔎 INSPECIONANDO SISTEMA INTERNO DO WHATSAPP');
+    console.log('==========================================');
+
+    try {
+
+        const resultado = await client.pupPage.evaluate(() => {
+
+            const resultado = {
+                webpack: {},
+                require: {},
+                globais: [],
+                objetosStatus: [],
+                objetosStory: [],
+                objetosGroup: []
+            };
+
+            // ==========================================
+            // REQUIRE
+            // ==========================================
+
+            resultado.require = {
+                existe: typeof window.require === "function",
+                tipo: typeof window.require,
+                chaves:
+                    typeof window.require === "function"
+                        ? Object.getOwnPropertyNames(window.require)
+                        : []
+            };
+
+            // ==========================================
+            // WEBPACK
+            // ==========================================
+
+            const webpack =
+                window.webpackChunkwhatsapp_web_client;
+
+            resultado.webpack = {
+                existe: !!webpack,
+                tipo: typeof webpack,
+                constructor:
+                    webpack?.constructor?.name || null,
+                length:
+                    webpack?.length ?? null,
+                propriedades:
+                    webpack
+                        ? Object.getOwnPropertyNames(webpack)
+                        : []
+            };
+
+            // ==========================================
+            // GLOBAIS
+            // ==========================================
+
+            resultado.globais =
+                Object.keys(window)
+                    .filter(nome => {
+
+                        const n =
+                            nome.toLowerCase();
+
+                        return (
+                            n.includes("status") ||
+                            n.includes("story") ||
+                            n.includes("stories") ||
+                            n.includes("group") ||
+                            n.includes("chat")
+                        );
+
+                    })
+                    .slice(0, 200);
+
+            // ==========================================
+            // INSPECIONAR GLOBAIS
+            // ==========================================
+
+            for (const nome of resultado.globais) {
+
+                try {
+
+                    const objeto =
+                        window[nome];
+
+                    if (!objeto) continue;
+
+                    const chaves =
+                        Object.getOwnPropertyNames(objeto)
+                            .slice(0, 100);
+
+                    const info = {
+                        nome,
+                        tipo: typeof objeto,
+                        constructor:
+                            objeto?.constructor?.name || null,
+                        chaves
+                    };
+
+                    const n =
+                        nome.toLowerCase();
+
+                    if (
+                        n.includes("status")
+                    ) {
+                        resultado.objetosStatus.push(info);
+                    }
+
+                    if (
+                        n.includes("story") ||
+                        n.includes("stories")
+                    ) {
+                        resultado.objetosStory.push(info);
+                    }
+
+                    if (
+                        n.includes("group")
+                    ) {
+                        resultado.objetosGroup.push(info);
+                    }
+
+                } catch {}
+
+            }
+
+            return resultado;
+        });
+
+        console.log('');
+        console.log('📦 RESULTADO DO DIAGNÓSTICO:');
+        console.log(
+            JSON.stringify(
+                resultado,
+                null,
+                2
+            )
+        );
+
+        console.log('');
+        console.log('==========================================');
+        console.log('🔎 FIM DO DIAGNÓSTICO');
+        console.log('==========================================');
+
+    } catch (err) {
+
+        console.error(
+            '❌ ERRO NO DIAGNÓSTICO:',
+            err
+        );
+
+    }
+
 });
 
 // ===== REAÇÃO → /play =====
