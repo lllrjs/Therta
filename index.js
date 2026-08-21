@@ -157,37 +157,43 @@ async function diagnosticarStatusGrupo() {
 
     try {
 
-        console.log("🔎 Inspecionando WhatsApp Web...");
+        console.log("🔎 Procurando módulos internos do WhatsApp Web...");
 
         const resultado = await client.pupPage.evaluate(() => {
 
-            const dados = {
-                webpack: typeof webpackChunkwhatsapp_web_client !== "undefined",
-                require: typeof window.require,
-                webpackKeys: [],
-                globals: []
-            };
+            const encontrados = [];
 
-            // Procura objetos globais relacionados a status/story
-            for (const chave of Object.keys(window)) {
+            try {
 
-                const nome = chave.toLowerCase();
+                const modulos = [];
 
-                if (
-                    nome.includes("status") ||
-                    nome.includes("story") ||
-                    nome.includes("stories") ||
-                    nome.includes("group")
-                ) {
-                    dados.globals.push(chave);
+                for (const chave of Object.keys(window)) {
+
+                    if (
+                        chave.startsWith("webpackChunk") &&
+                        Array.isArray(window[chave])
+                    ) {
+                        modulos.push(window[chave]);
+                    }
                 }
-            }
 
-            return dados;
+                return {
+                    webpackChunks: modulos.length,
+                    chunks: modulos.map(chunk => ({
+                        length: chunk.length
+                    }))
+                };
+
+            } catch (err) {
+
+                return {
+                    erro: String(err)
+                };
+            }
         });
 
         console.log(
-            "📱 RESULTADO DO DIAGNÓSTICO:"
+            "📦 RESULTADO WEBPACK:"
         );
 
         console.log(
@@ -201,7 +207,7 @@ async function diagnosticarStatusGrupo() {
     } catch (err) {
 
         console.error(
-            "❌ Erro no diagnóstico:",
+            "❌ Erro:",
             err
         );
 
