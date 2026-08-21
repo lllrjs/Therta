@@ -157,96 +157,58 @@ async function diagnosticarStatusGrupo() {
 
     try {
 
-        console.log("🔎 Inspecionando sistema interno do WhatsApp Web...");
+        console.log("🔎 Inspecionando Webpack do WhatsApp Web...");
 
         const resultado =
             await client.pupPage.evaluate(() => {
 
-                const resultado = {
-                    requireExiste: typeof window.require,
-                    requireTipo: typeof window.require,
-                    requireChaves: [],
-                    webpackGlobais: [],
-                    globaisInteressantes: []
-                };
-
-                // ==========================================
-                // REQUIRE
-                // ==========================================
+                const resultado = {};
 
                 try {
 
-                    if (window.require) {
+                    const chunk =
+                        window.webpackChunkwhatsapp_web_client;
 
-                        resultado.requireChaves =
-                            Object.getOwnPropertyNames(
-                                window.require
-                            );
+                    resultado.existe =
+                        !!chunk;
 
-                    }
+                    resultado.tipo =
+                        typeof chunk;
 
-                } catch (err) {
+                    resultado.constructor =
+                        chunk?.constructor?.name;
 
-                    resultado.requireErro =
-                        String(err);
-                }
+                    resultado.length =
+                        chunk?.length;
 
+                    resultado.propriedades =
+                        chunk
+                            ? Object.getOwnPropertyNames(chunk)
+                            : [];
 
-                // ==========================================
-                // WEBPACK
-                // ==========================================
+                    resultado.pushTipo =
+                        chunk
+                            ? typeof chunk.push
+                            : null;
 
-                try {
-
-                    resultado.webpackGlobais =
-                        Object.keys(window)
-                            .filter(nome =>
-                                nome.toLowerCase().includes("webpack")
-                            );
-
-                } catch (err) {
-
-                    resultado.webpackErro =
-                        String(err);
-                }
-
-
-                // ==========================================
-                // GLOBAIS RELACIONADOS
-                // ==========================================
-
-                try {
-
-                    resultado.globaisInteressantes =
-                        Object.keys(window)
-                            .filter(nome => {
-
-                                const n =
-                                    nome.toLowerCase();
-
-                                return (
-                                    n.includes("status") ||
-                                    n.includes("story") ||
-                                    n.includes("stories") ||
-                                    n.includes("group")
-                                );
-
-                            })
-                            .slice(0, 200);
+                    resultado.pushString =
+                        chunk?.push
+                            ? String(chunk.push).slice(0, 1000)
+                            : null;
 
                 } catch (err) {
 
-                    resultado.globaisErro =
+                    resultado.erro =
                         String(err);
-                }
 
+                }
 
                 return resultado;
             });
 
 
         console.log(
-            "📦 RESULTADO DO DIAGNÓSTICO:"
+            "📦 RESULTADO WEBPACK:"
         );
 
         console.log(
